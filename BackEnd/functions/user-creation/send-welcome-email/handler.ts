@@ -6,6 +6,7 @@ export interface SendWelcomeEmailInput {
   email: string;
   firstName?: string;
   lastName?: string;
+  contactNumber?: string;
   createdAt: string;
   tier: string;
 }
@@ -52,6 +53,7 @@ export const handler = async (
         <h3>Account Details:</h3>
         <ul>
           <li><strong>Email:</strong> ${event.email}</li>
+          <li><strong>Contact Number:</strong> ${event.contactNumber || 'Not provided'}</li>
           <li><strong>User ID:</strong> ${event.userId}</li>
           <li><strong>Account Tier:</strong> ${event.tier}</li>
           <li><strong>Created:</strong> ${new Date(event.createdAt).toLocaleString()}</li>
@@ -75,6 +77,7 @@ Welcome to Lambda Real Estate! Your account has been successfully created and is
 
 Account Details:
 - Email: ${event.email}
+- Contact Number: ${event.contactNumber || 'Not provided'}
 - User ID: ${event.userId}
 - Account Tier: ${event.tier}
 - Created: ${new Date(event.createdAt).toLocaleString()}
@@ -87,7 +90,7 @@ The Lambda Real Estate Team
 
   try {
     const response = await resend.emails.send({
-      from: "Vidit <vidit@serverlesscreed.com>",
+      from: "Admin <admin@serverlesscreed.com>",
       to: [toEmail],
       subject: emailSubject,
       text: textBody,

@@ -9,6 +9,7 @@ export interface CreateS3FolderInput {
   email: string;
   firstName?: string;
   lastName?: string;
+  contactNumber?: string;
   createdAt: string;
   tier: string;
 }

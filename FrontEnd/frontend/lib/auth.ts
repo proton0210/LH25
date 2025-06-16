@@ -22,7 +22,11 @@ export interface AuthUser {
   groups?: string[];
 }
 
-export async function signUp(email: string, password: string) {
+export async function signUp(email: string, password: string, customAttributes?: {
+  firstName?: string;
+  lastName?: string;
+  contactNumber?: string;
+}) {
   try {
     const { isSignUpComplete, userId, nextStep } = await amplifySignUp({
       username: email,
@@ -30,6 +34,9 @@ export async function signUp(email: string, password: string) {
       options: {
         userAttributes: {
           email,
+          ...(customAttributes?.firstName && { 'custom:firstName': customAttributes.firstName }),
+          ...(customAttributes?.lastName && { 'custom:lastName': customAttributes.lastName }),
+          ...(customAttributes?.contactNumber && { 'custom:contactNumber': customAttributes.contactNumber }),
         },
       },
     });

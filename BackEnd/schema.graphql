@@ -1,0 +1,171 @@
+type Property {
+  id: ID!
+  title: String!
+  description: String!
+  price: Float!
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  bedrooms: Int!
+  bathrooms: Float!
+  squareFeet: Int!
+  propertyType: PropertyType!
+  listingType: ListingType!
+  images: [String!]!
+  submittedBy: String # email or userId
+  submittedAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  status: PropertyStatus!
+  contactName: String!
+  contactEmail: String!
+  contactPhone: String!
+  amenities: [String!]
+  yearBuilt: Int
+  lotSize: Float
+  parkingSpaces: Int
+  isPublic: Boolean!
+}
+
+enum PropertyType {
+  SINGLE_FAMILY
+  CONDO
+  TOWNHOUSE
+  MULTI_FAMILY
+  LAND
+  COMMERCIAL
+  OTHER
+}
+
+enum ListingType {
+  FOR_SALE
+  FOR_RENT
+  SOLD
+  RENTED
+}
+
+enum PropertyStatus {
+  PENDING_REVIEW
+  ACTIVE
+  INACTIVE
+  REJECTED
+}
+
+type UploadUrl {
+  uploadUrl: String!
+  fileKey: String!
+}
+
+type PropertyConnection {
+  items: [Property!]!
+  nextToken: String
+}
+
+input CreatePropertyInput {
+  title: String!
+  description: String!
+  price: Float!
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  bedrooms: Int!
+  bathrooms: Float!
+  squareFeet: Int!
+  propertyType: PropertyType!
+  listingType: ListingType!
+  images: [String!]!
+  contactName: String!
+  contactEmail: String!
+  contactPhone: String!
+  amenities: [String!]
+  yearBuilt: Int
+  lotSize: Float
+  parkingSpaces: Int
+}
+
+input UpdatePropertyInput {
+  id: ID!
+  title: String
+  description: String
+  price: Float
+  address: String
+  city: String
+  state: String
+  zipCode: String
+  bedrooms: Int
+  bathrooms: Float
+  squareFeet: Int
+  propertyType: PropertyType
+  listingType: ListingType
+  images: [String!]
+  contactName: String
+  contactEmail: String
+  contactPhone: String
+  amenities: [String!]
+  yearBuilt: Int
+  lotSize: Float
+  parkingSpaces: Int
+  status: PropertyStatus
+}
+
+input PropertyFilterInput {
+  city: String
+  state: String
+  minPrice: Float
+  maxPrice: Float
+  minBedrooms: Int
+  minBathrooms: Float
+  propertyType: PropertyType
+  listingType: ListingType
+  status: PropertyStatus
+}
+
+type Query {
+  # All queries require authentication
+  getProperty(id: ID!): Property @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  listProperties(
+    filter: PropertyFilterInput
+    limit: Int
+    nextToken: String
+  ): PropertyConnection! @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  
+  # List user's own properties
+  listMyProperties(
+    limit: Int
+    nextToken: String
+  ): PropertyConnection! @aws_auth(cognito_groups: ["user", "paid", "admin"])
+}
+
+type Mutation {
+  # All mutations require authentication
+  getUploadUrl(
+    fileName: String!
+    contentType: String!
+  ): UploadUrl! @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  
+  createProperty(input: CreatePropertyInput!): Property! @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  
+  # Only property owner or admin can update/delete
+  updateProperty(input: UpdatePropertyInput!): Property! 
+    @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  
+  deleteProperty(id: ID!): Property! 
+    @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  
+  # Admin only mutations
+  approveProperty(id: ID!): Property! 
+    @aws_auth(cognito_groups: ["admin"])
+  
+  rejectProperty(id: ID!, reason: String!): Property! 
+    @aws_auth(cognito_groups: ["admin"])
+}
+
+type Subscription {
+  onPropertyCreated: Property
+    @aws_subscribe(mutations: ["createProperty"])
+  
+  onPropertyUpdated: Property
+    @aws_subscribe(mutations: ["updateProperty"])
+    @aws_auth(cognito_groups: ["user", "paid", "admin"])
+}

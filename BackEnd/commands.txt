@@ -2,8 +2,8 @@
 
 ## Prerequisites - Updated with your actual AWS values
 export AWS_PROFILE=workshop
-export USER_POOL_ID="ap-south-1_r9FcRxAsd"
-export CLIENT_ID="4j3msfhhurtikrhg179l2u55sr"
+export USER_POOL_ID="ap-south-1_0KFpHhmL7"
+export CLIENT_ID="5b91j4jdmcu7bfqmmberf3udfm"
 export REGION="ap-south-1"
 export STATE_MACHINE_ARN="arn:aws:states:ap-south-1:585768150182:stateMachine:user-creation-workflow"
 export BUCKET_NAME="lh-user-files-585768150182-ap-south-1"
@@ -19,8 +19,8 @@ export USER_TABLE="lh-users"
 export AWS_PROFILE=workshop
 
 # Set your values here
-USER_POOL_ID="ap-south-1_r9FcRxAsd"
-CLIENT_ID="4j3msfhhurtikrhg179l2u55sr"
+USER_POOL_ID="ap-south-1_0KFpHhmL7"
+CLIENT_ID="5b91j4jdmcu7bfqmmberf3udfm"
 REGION="ap-south-1"
 STATE_MACHINE_ARN="arn:aws:states:ap-south-1:585768150182:stateMachine:user-creation-workflow"
 BUCKET_NAME="lh-user-files-585768150182-ap-south-1"
@@ -37,6 +37,7 @@ aws cognito-idp sign-up \
     Name=email,Value=vidit0210@gmail.com \
     Name=custom:firstName,Value=Vidit \
     Name=custom:lastName,Value=Shah \
+    Name=custom:contactNumber,Value=+919876543210 \
   --region $REGION
 
 echo "Waiting 2 seconds..."
@@ -95,6 +96,7 @@ aws cognito-idp sign-up \
     Name=email,Value=vidit0210@gmail.com \
     Name=custom:firstName,Value=Vidit \
     Name=custom:lastName,Value=Shah \
+    Name=custom:contactNumber,Value=+919876543210 \
   --region $REGION
 
 # Step 2: Auto-confirm the user (for testing - normally user would click email link)

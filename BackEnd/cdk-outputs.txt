@@ -1,0 +1,37 @@
+# CDK Stack Outputs
+# Generated on: 2025-06-16T20:43:37.596Z
+
+AdminGroupName=admin
+GraphQLApiId=iivw24s5xffwjbtrkke2qfnlaq
+GraphQLApiUrl=https://tczunefzunff3eu6uie2egfdqq.appsync-api.ap-south-1.amazonaws.com/graphql
+PaidGroupName=paid
+PostConfirmationLambdaArn=arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostConfirmationLambdaC4F60401-J2ZDyJ1DyHxF
+PostPasswordChangeLambdaArn=arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostPasswordChangeLambdaDD765501-EKXTj86xdIob
+PropertiesTableName=lh-properties
+PropertyImagesBucketName=lh-property-images-585768150182-ap-south-1
+ResendAPIKeyNote=Deploy with: npx cdk deploy --context resendApiKey=YOUR_RESEND_API_KEY
+ResendConfigurationNote=Remember to add your domain to Resend and configure your Resend API key
+UserCreationStateMachineArn=arn:aws:states:ap-south-1:585768150182:stateMachine:user-creation-workflow
+UserFilesBucketName=lh-user-files-585768150182-ap-south-1
+UserGroupName=user
+UserPoolClientId=5b91j4jdmcu7bfqmmberf3udfm
+UserPoolId=ap-south-1_0KFpHhmL7
+UserTableName=lh-users
+
+# Export commands for bash (source this file to set environment variables)
+export ADMIN_GROUP_NAME="admin"
+export GRAPH_Q_L_API_ID="iivw24s5xffwjbtrkke2qfnlaq"
+export GRAPH_Q_L_API_URL="https://tczunefzunff3eu6uie2egfdqq.appsync-api.ap-south-1.amazonaws.com/graphql"
+export PAID_GROUP_NAME="paid"
+export POST_CONFIRMATION_LAMBDA_ARN="arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostConfirmationLambdaC4F60401-J2ZDyJ1DyHxF"
+export POST_PASSWORD_CHANGE_LAMBDA_ARN="arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostPasswordChangeLambdaDD765501-EKXTj86xdIob"
+export PROPERTIES_TABLE_NAME="lh-properties"
+export PROPERTY_IMAGES_BUCKET_NAME="lh-property-images-585768150182-ap-south-1"
+export RESEND_A_P_I_KEY_NOTE="Deploy with: npx cdk deploy --context resendApiKey=YOUR_RESEND_API_KEY"
+export RESEND_CONFIGURATION_NOTE="Remember to add your domain to Resend and configure your Resend API key"
+export USER_CREATION_STATE_MACHINE_ARN="arn:aws:states:ap-south-1:585768150182:stateMachine:user-creation-workflow"
+export USER_FILES_BUCKET_NAME="lh-user-files-585768150182-ap-south-1"
+export USER_GROUP_NAME="user"
+export USER_POOL_CLIENT_ID="5b91j4jdmcu7bfqmmberf3udfm"
+export USER_POOL_ID="ap-south-1_0KFpHhmL7"
+export USER_TABLE_NAME="lh-users"

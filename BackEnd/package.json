@@ -9,9 +9,10 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "deploy": "cdk synth && cdk deploy --require-approval never"
+    "deploy": "cdk synth && cdk deploy --require-approval never --outputs-file cdk-outputs.json && node save-outputs.js"
   },
   "devDependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.830.0",
     "@types/aws-lambda": "^8.10.150",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.2",

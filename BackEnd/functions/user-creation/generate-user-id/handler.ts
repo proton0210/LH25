@@ -5,6 +5,7 @@ export interface GenerateUserIdInput {
   email: string;
   firstName?: string;
   lastName?: string;
+  contactNumber?: string;
 }
 
 export interface GenerateUserIdOutput extends GenerateUserIdInput {

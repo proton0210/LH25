@@ -15,7 +15,7 @@ import {
   getUserGroups,
   isAdmin,
   isPaidUser,
-  AuthUser,
+  type AuthUser,
 } from '@/lib/auth';
 
 interface AuthContextType {
@@ -24,7 +24,11 @@ interface AuthContextType {
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  signUp: (email: string, password: string) => Promise<any>;
+  signUp: (email: string, password: string, customAttributes?: {
+    firstName?: string;
+    lastName?: string;
+    contactNumber?: string;
+  }) => Promise<any>;
   confirmSignUp: (email: string, code: string) => Promise<void>;
   resendConfirmationCode: (email: string) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
@@ -108,10 +112,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const authSignUp = async (email: string, password: string) => {
+  const authSignUp = async (email: string, password: string, customAttributes?: {
+    firstName?: string;
+    lastName?: string;
+    contactNumber?: string;
+  }) => {
     try {
       setError(null);
-      return await signUp(email, password);
+      return await signUp(email, password, customAttributes);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign up');
       throw err;

@@ -8,6 +8,7 @@ import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
 import * as iam from "aws-cdk-lib/aws-iam";
+import * as appsync from "aws-cdk-lib/aws-appsync";
 import * as path from "path";
 
 export class BackEndStack extends cdk.Stack {
@@ -24,6 +25,29 @@ export class BackEndStack extends cdk.Stack {
         entry: path.join(
           __dirname,
           "../functions/post-confirmation/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          NODE_OPTIONS: "--enable-source-maps",
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+
+    const postPasswordChangeLambda = new NodejsFunction(
+      this,
+      "PostPasswordChangeLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/post-password-change/handler.ts"
         ),
         bundling: {
           minify: true,
@@ -64,6 +88,11 @@ export class BackEndStack extends cdk.Stack {
           maxLen: 50,
           mutable: true,
         }),
+        contactNumber: new cognito.StringAttribute({
+          minLen: 10,
+          maxLen: 20,
+          mutable: true,
+        }),
       },
       passwordPolicy: {
         minLength: 8,
@@ -76,6 +105,7 @@ export class BackEndStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       lambdaTriggers: {
         postConfirmation: postConfirmationLambda,
+        postAuthentication: postPasswordChangeLambda,
       },
     });
 
@@ -95,12 +125,12 @@ export class BackEndStack extends cdk.Stack {
             email: true,
             emailVerified: true,
           })
-          .withCustomAttributes("firstName", "lastName"),
+          .withCustomAttributes("firstName", "lastName", "contactNumber"),
         writeAttributes: new cognito.ClientAttributes()
           .withStandardAttributes({
             email: true,
           })
-          .withCustomAttributes("firstName", "lastName"),
+          .withCustomAttributes("firstName", "lastName", "contactNumber"),
       }
     );
 
@@ -137,7 +167,6 @@ export class BackEndStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       pointInTimeRecovery: true,
     });
-
 
     // Create S3 Bucket
     const userFilesBucket = new s3.Bucket(this, "UserFilesBucket", {
@@ -296,7 +325,7 @@ export class BackEndStack extends cdk.Stack {
 
     // Create parallel state for DynamoDB and S3 operations
     const parallelState = new sfn.Parallel(this, "CreateUserResources", {
-      outputPath: "$[0]" // Take the first element of the parallel output array
+      outputPath: "$[0]", // Take the first element of the parallel output array
     })
       .branch(createDynamoDBUserTask)
       .branch(createS3FolderTask);
@@ -325,6 +354,439 @@ export class BackEndStack extends cdk.Stack {
       userCreationStateMachine.stateMachineArn
     );
 
+    // =====================================================
+    // APPSYNC API FOR REAL ESTATE PROPERTIES
+    // =====================================================
+
+    // Create DynamoDB Table for Properties
+    const propertiesTable = new dynamodb.Table(this, "PropertiesTable", {
+      tableName: "lh-properties",
+      partitionKey: {
+        name: "pk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "sk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      pointInTimeRecovery: true,
+    });
+
+    // Add Global Secondary Indexes for querying
+    propertiesTable.addGlobalSecondaryIndex({
+      indexName: "gsi1",
+      partitionKey: {
+        name: "gsi1pk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "gsi1sk",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    propertiesTable.addGlobalSecondaryIndex({
+      indexName: "gsi2",
+      partitionKey: {
+        name: "gsi2pk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "gsi2sk",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    propertiesTable.addGlobalSecondaryIndex({
+      indexName: "gsi3",
+      partitionKey: {
+        name: "gsi3pk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "gsi3sk",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    propertiesTable.addGlobalSecondaryIndex({
+      indexName: "gsi4",
+      partitionKey: {
+        name: "gsi4pk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "gsi4sk",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    propertiesTable.addGlobalSecondaryIndex({
+      indexName: "gsi5",
+      partitionKey: {
+        name: "gsi5pk",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: {
+        name: "gsi5sk",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+
+    // Create S3 Bucket for Property Images
+    const propertyImagesBucket = new s3.Bucket(this, "PropertyImagesBucket", {
+      bucketName: `lh-property-images-${this.account}-${this.region}`,
+      versioned: true,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      cors: [
+        {
+          allowedHeaders: ["*"],
+          allowedMethods: [
+            s3.HttpMethods.GET,
+            s3.HttpMethods.PUT,
+            s3.HttpMethods.POST,
+            s3.HttpMethods.DELETE,
+          ],
+          allowedOrigins: ["*"],
+          exposedHeaders: ["ETag"],
+          maxAge: 3000,
+        },
+      ],
+      lifecycleRules: [
+        {
+          id: "delete-old-versions",
+          noncurrentVersionExpiration: cdk.Duration.days(30),
+          abortIncompleteMultipartUploadAfter: cdk.Duration.days(7),
+        },
+      ],
+    });
+
+    // Create AppSync API
+    const api = new appsync.GraphqlApi(this, "PropertyApi", {
+      name: "lh-property-api",
+      schema: appsync.SchemaFile.fromAsset(
+        path.join(__dirname, "../schema.graphql")
+      ),
+      authorizationConfig: {
+        defaultAuthorization: {
+          authorizationType: appsync.AuthorizationType.USER_POOL,
+          userPoolConfig: {
+            userPool,
+          },
+        },
+      },
+      xrayEnabled: true,
+    });
+
+    // Create Lambda Resolvers
+    const resolverEnvironment = {
+      PROPERTIES_TABLE_NAME: propertiesTable.tableName,
+      PROPERTY_IMAGES_BUCKET_NAME: propertyImagesBucket.bucketName,
+    };
+
+    // Get Upload URL Lambda
+    const getUploadUrlLambda = new NodejsFunction(this, "GetUploadUrlLambda", {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "handler",
+      entry: path.join(
+        __dirname,
+        "../functions/appsync-resolvers/get-upload-url.ts"
+      ),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        sourcesContent: false,
+        target: "node20",
+      },
+      environment: resolverEnvironment,
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    // Create Property Lambda
+    const createPropertyLambda = new NodejsFunction(
+      this,
+      "CreatePropertyLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/create-property.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: resolverEnvironment,
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    // Get Property Lambda
+    const getPropertyLambda = new NodejsFunction(this, "GetPropertyLambda", {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "handler",
+      entry: path.join(
+        __dirname,
+        "../functions/appsync-resolvers/get-property.ts"
+      ),
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        sourcesContent: false,
+        target: "node20",
+      },
+      environment: resolverEnvironment,
+      timeout: cdk.Duration.seconds(10),
+    });
+
+    // List Properties Lambda
+    const listPropertiesLambda = new NodejsFunction(
+      this,
+      "ListPropertiesLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/list-properties.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: resolverEnvironment,
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    // List My Properties Lambda
+    const listMyPropertiesLambda = new NodejsFunction(
+      this,
+      "ListMyPropertiesLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/list-my-properties.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: resolverEnvironment,
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    // Update Property Lambda
+    const updatePropertyLambda = new NodejsFunction(
+      this,
+      "UpdatePropertyLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/update-property.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: resolverEnvironment,
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    // Delete Property Lambda
+    const deletePropertyLambda = new NodejsFunction(
+      this,
+      "DeletePropertyLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/delete-property.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: resolverEnvironment,
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    // Approve Property Lambda
+    const approvePropertyLambda = new NodejsFunction(
+      this,
+      "ApprovePropertyLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/approve-property.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: resolverEnvironment,
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    // Reject Property Lambda
+    const rejectPropertyLambda = new NodejsFunction(
+      this,
+      "RejectPropertyLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/reject-property.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: resolverEnvironment,
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    // Grant permissions
+    propertiesTable.grantReadWriteData(createPropertyLambda);
+    propertiesTable.grantReadData(getPropertyLambda);
+    propertiesTable.grantReadData(listPropertiesLambda);
+    propertiesTable.grantReadData(listMyPropertiesLambda);
+    propertiesTable.grantReadWriteData(updatePropertyLambda);
+    propertiesTable.grantReadWriteData(deletePropertyLambda);
+    propertiesTable.grantReadWriteData(approvePropertyLambda);
+    propertiesTable.grantReadWriteData(rejectPropertyLambda);
+
+    // Grant S3 permissions
+    propertyImagesBucket.grantPut(getUploadUrlLambda);
+    propertyImagesBucket.grantDelete(deletePropertyLambda);
+
+    // Create Data Sources
+    const getUploadUrlDataSource = api.addLambdaDataSource(
+      "GetUploadUrlDataSource",
+      getUploadUrlLambda
+    );
+
+    const createPropertyDataSource = api.addLambdaDataSource(
+      "CreatePropertyDataSource",
+      createPropertyLambda
+    );
+
+    const getPropertyDataSource = api.addLambdaDataSource(
+      "GetPropertyDataSource",
+      getPropertyLambda
+    );
+
+    const listPropertiesDataSource = api.addLambdaDataSource(
+      "ListPropertiesDataSource",
+      listPropertiesLambda
+    );
+
+    const listMyPropertiesDataSource = api.addLambdaDataSource(
+      "ListMyPropertiesDataSource",
+      listMyPropertiesLambda
+    );
+
+    const updatePropertyDataSource = api.addLambdaDataSource(
+      "UpdatePropertyDataSource",
+      updatePropertyLambda
+    );
+
+    const deletePropertyDataSource = api.addLambdaDataSource(
+      "DeletePropertyDataSource",
+      deletePropertyLambda
+    );
+
+    const approvePropertyDataSource = api.addLambdaDataSource(
+      "ApprovePropertyDataSource",
+      approvePropertyLambda
+    );
+
+    const rejectPropertyDataSource = api.addLambdaDataSource(
+      "RejectPropertyDataSource",
+      rejectPropertyLambda
+    );
+
+    // Create Resolvers
+    // Queries
+    getPropertyDataSource.createResolver("GetPropertyResolver", {
+      typeName: "Query",
+      fieldName: "getProperty",
+    });
+
+    listPropertiesDataSource.createResolver("ListPropertiesResolver", {
+      typeName: "Query",
+      fieldName: "listProperties",
+    });
+
+    listMyPropertiesDataSource.createResolver("ListMyPropertiesResolver", {
+      typeName: "Query",
+      fieldName: "listMyProperties",
+    });
+
+    // Mutations
+    getUploadUrlDataSource.createResolver("GetUploadUrlResolver", {
+      typeName: "Mutation",
+      fieldName: "getUploadUrl",
+    });
+
+    createPropertyDataSource.createResolver("CreatePropertyResolver", {
+      typeName: "Mutation",
+      fieldName: "createProperty",
+    });
+
+    updatePropertyDataSource.createResolver("UpdatePropertyResolver", {
+      typeName: "Mutation",
+      fieldName: "updateProperty",
+    });
+
+    deletePropertyDataSource.createResolver("DeletePropertyResolver", {
+      typeName: "Mutation",
+      fieldName: "deleteProperty",
+    });
+
+    approvePropertyDataSource.createResolver("ApprovePropertyResolver", {
+      typeName: "Mutation",
+      fieldName: "approveProperty",
+    });
+
+    rejectPropertyDataSource.createResolver("RejectPropertyResolver", {
+      typeName: "Mutation",
+      fieldName: "rejectProperty",
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "UserPoolId", {
       value: userPool.userPoolId,
@@ -346,24 +808,23 @@ export class BackEndStack extends cdk.Stack {
       description: "The name of the User DynamoDB table",
     });
 
-
     new cdk.CfnOutput(this, "UserFilesBucketName", {
       value: userFilesBucket.bucketName,
       description: "The name of the User Files S3 bucket",
     });
 
     new cdk.CfnOutput(this, "UserGroupName", {
-      value: userGroup.groupName || "user",
+      value: userGroup.groupName ?? "user",
       description: "The name of the user group",
     });
 
     new cdk.CfnOutput(this, "PaidGroupName", {
-      value: paidGroup.groupName || "paid",
+      value: paidGroup.groupName ?? "paid",
       description: "The name of the paid group",
     });
 
     new cdk.CfnOutput(this, "AdminGroupName", {
-      value: adminGroup.groupName || "admin",
+      value: adminGroup.groupName ?? "admin",
       description: "The name of the admin group",
     });
 
@@ -382,6 +843,32 @@ export class BackEndStack extends cdk.Stack {
       value:
         "Deploy with: npx cdk deploy --context resendApiKey=YOUR_RESEND_API_KEY",
       description: "How to provide your Resend API key",
+    });
+
+    // AppSync API Outputs
+    new cdk.CfnOutput(this, "GraphQLApiUrl", {
+      value: api.graphqlUrl,
+      description: "The URL of the GraphQL API",
+    });
+
+    new cdk.CfnOutput(this, "PropertiesTableName", {
+      value: propertiesTable.tableName,
+      description: "The name of the Properties DynamoDB table",
+    });
+
+    new cdk.CfnOutput(this, "PropertyImagesBucketName", {
+      value: propertyImagesBucket.bucketName,
+      description: "The name of the Property Images S3 bucket",
+    });
+
+    new cdk.CfnOutput(this, "GraphQLApiId", {
+      value: api.apiId,
+      description: "The ID of the GraphQL API",
+    });
+
+    new cdk.CfnOutput(this, "PostPasswordChangeLambdaArn", {
+      value: postPasswordChangeLambda.functionArn,
+      description: "The ARN of the Post Password Change Lambda function",
     });
   }
 }

@@ -1,0 +1,122 @@
+type Property {
+  id: ID!
+  title: String!
+  description: String!
+  price: Float!
+  propertyType: String!
+  bedrooms: Int
+  bathrooms: Int
+  area: Float
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  images: [String!]!
+  contactName: String!
+  contactEmail: String!
+  contactPhone: String!
+  status: PropertyStatus!
+  userId: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum PropertyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ACTIVE
+  SOLD
+}
+
+type UploadUrl {
+  uploadUrl: String!
+  fileUrl: String!
+}
+
+type Query {
+  getProperty(id: ID!): Property
+  listProperties(
+    filter: PropertyFilter
+    limit: Int
+    nextToken: String
+  ): PropertyConnection!
+  listMyProperties(
+    limit: Int
+    nextToken: String
+  ): PropertyConnection!
+}
+
+type Mutation {
+  # Public mutation - anyone can upload
+  getUploadUrl(
+    fileName: String!
+    contentType: String!
+  ): UploadUrl!
+  
+  # Public mutation - anyone can create property
+  createProperty(input: CreatePropertyInput!): Property!
+  
+  # Authenticated mutations
+  updateProperty(input: UpdatePropertyInput!): Property
+  deleteProperty(id: ID!): Property
+  updatePropertyStatus(
+    id: ID!
+    status: PropertyStatus!
+  ): Property
+}
+
+input CreatePropertyInput {
+  title: String!
+  description: String!
+  price: Float!
+  propertyType: String!
+  bedrooms: Int
+  bathrooms: Int
+  area: Float
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  images: [String!]!
+  contactName: String!
+  contactEmail: String!
+  contactPhone: String!
+}
+
+input UpdatePropertyInput {
+  id: ID!
+  title: String
+  description: String
+  price: Float
+  propertyType: String
+  bedrooms: Int
+  bathrooms: Int
+  area: Float
+  address: String
+  city: String
+  state: String
+  zipCode: String
+  images: [String!]
+  status: PropertyStatus
+}
+
+input PropertyFilter {
+  city: String
+  state: String
+  minPrice: Float
+  maxPrice: Float
+  propertyType: String
+  bedrooms: Int
+  status: PropertyStatus
+}
+
+type PropertyConnection {
+  items: [Property!]!
+  nextToken: String
+}
+
+schema {
+  query: Query
+  mutation: Mutation
+}

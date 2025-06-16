@@ -12,6 +12,7 @@ export interface CreateDynamoDBUserInput {
   email: string;
   firstName?: string;
   lastName?: string;
+  contactNumber?: string;
   createdAt: string;
   tier: string;
 }
@@ -21,6 +22,7 @@ interface User {
   cognitoUserId: string;
   firstName: string;
   lastName: string;
+  contactNumber: string;
   email: string;
   createdAt: string;
   tier: string;
@@ -34,6 +36,7 @@ export const handler = async (event: CreateDynamoDBUserInput): Promise<CreateDyn
     cognitoUserId: event.cognitoUserId,
     firstName: event.firstName || '',
     lastName: event.lastName || '',
+    contactNumber: event.contactNumber || '',
     email: event.email,
     createdAt: event.createdAt,
     tier: event.tier

@@ -10,7 +10,7 @@ export const handler: PostConfirmationTriggerHandler = async (
   console.log('PostConfirmation trigger received event:', JSON.stringify(event, null, 2));
 
   const { userAttributes } = event.request;
-  const { sub, email, 'custom:firstName': firstName, 'custom:lastName': lastName } = userAttributes;
+  const { sub, email, 'custom:firstName': firstName, 'custom:lastName': lastName, 'custom:contactNumber': contactNumber } = userAttributes;
 
   try {
     // Prepare input for Step Functions
@@ -18,7 +18,8 @@ export const handler: PostConfirmationTriggerHandler = async (
       cognitoUserId: sub,
       email,
       firstName: firstName || '',
-      lastName: lastName || ''
+      lastName: lastName || '',
+      contactNumber: contactNumber || ''
     };
 
     console.log('Starting Step Functions execution with input:', stateMachineInput);
