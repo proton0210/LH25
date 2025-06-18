@@ -14,7 +14,6 @@
     "PropertyImagesBucketName": "lh-property-images-585768150182-ap-south-1",
     "ResendConfigurationNote": "Remember to add your domain to Resend and configure your Resend API key",
     "GraphQLApiUrl": "https://tczunefzunff3eu6uie2egfdqq.appsync-api.ap-south-1.amazonaws.com/graphql",
-    "PropertiesTableName": "lh-properties",
-    "PostPasswordChangeLambdaArn": "arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostPasswordChangeLambdaDD765501-EKXTj86xdIob"
+    "PropertiesTableName": "lh-properties"
   }
 }

@@ -115,6 +115,9 @@ export function MultiStepSignUp() {
       await confirmSignUp(formData.email, data.verificationCode);
       // Update user attributes after successful confirmation
       // This would be handled by the post-confirmation Lambda
+      
+      // Redirect to listings page after successful verification
+      window.location.href = '/listings';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to verify code');
     } finally {

@@ -30,6 +30,13 @@ const amplifyConfig = {
       bucket: process.env.NEXT_PUBLIC_USER_FILES_BUCKET!,
       region: process.env.NEXT_PUBLIC_AWS_REGION!,
     }
+  },
+  API: {
+    GraphQL: {
+      endpoint: 'https://tczunefzunff3eu6uie2egfdqq.appsync-api.ap-south-1.amazonaws.com/graphql',
+      region: process.env.NEXT_PUBLIC_AWS_REGION || 'ap-south-1',
+      defaultAuthMode: 'userPool',
+    }
   }
 };
 

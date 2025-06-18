@@ -42,7 +42,7 @@ export function LoginForm() {
     
     try {
       await signIn(data.email, data.password);
-      router.push('/dashboard');
+      router.push('/listings');
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes('UserNotFoundException')) {

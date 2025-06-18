@@ -1,0 +1,222 @@
+[
+  {
+    "title": "Charming 3-Bedroom Ranch in Suburbs",
+    "description": "A bright and airy single-story home with modern upgrades, spacious backyard, and 2-car garage.",
+    "type": "House",
+    "price": 350000,
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "area_sq_ft": 1850,
+    "address": {
+      "street": "147 Rosewood Lane",
+      "city": "Atlanta",
+      "state": "Georgia",
+      "zip": "30318"
+    },
+    "contact": {
+      "name": "John Harper",
+      "email": "johnh@example.com",
+      "phone": "(404) 555-3281"
+    },
+    "images": ["exterior.jpg", "living_room.jpg", "backyard.jpg", "kitchen.jpg"]
+  },
+  {
+    "title": "Downtown Loft with Skyline Views",
+    "description": "Industrial-style 1BR loft in a historic building with rooftop access and skyline views.",
+    "type": "Apartment",
+    "price": 540000,
+    "bedrooms": 1,
+    "bathrooms": 1,
+    "area_sq_ft": 950,
+    "address": {
+      "street": "55 King Street",
+      "city": "Chicago",
+      "state": "Illinois",
+      "zip": "60607"
+    },
+    "contact": {
+      "name": "Amanda Fields",
+      "email": "amanda@urbanliving.com",
+      "phone": "(312) 987-9945"
+    },
+    "images": [
+      "city_view.jpg",
+      "open_kitchen.jpg",
+      "brick_interior.jpg",
+      "rooftop.jpg"
+    ]
+  },
+  {
+    "title": "Sample Property #3",
+    "description": "Description for sample property 3.",
+    "type": "Apartment",
+    "price": 330000,
+    "bedrooms": 4,
+    "bathrooms": 1,
+    "area_sq_ft": 1300,
+    "address": {
+      "street": "30 Example Street",
+      "city": "Sample City",
+      "state": "Sample State",
+      "zip": "10003"
+    },
+    "contact": {
+      "name": "Agent 3",
+      "email": "agent3@example.com",
+      "phone": "(555) 000-1003"
+    },
+    "images": ["image3_1.jpg", "image3_2.jpg", "image3_3.jpg", "image3_4.jpg"]
+  },
+  {
+    "title": "Sample Property #4",
+    "description": "Description for sample property 4.",
+    "type": "House",
+    "price": 340000,
+    "bedrooms": 5,
+    "bathrooms": 2,
+    "area_sq_ft": 1400,
+    "address": {
+      "street": "40 Example Street",
+      "city": "Sample City",
+      "state": "Sample State",
+      "zip": "10004"
+    },
+    "contact": {
+      "name": "Agent 4",
+      "email": "agent4@example.com",
+      "phone": "(555) 000-1004"
+    },
+    "images": ["image4_1.jpg", "image4_2.jpg", "image4_3.jpg", "image4_4.jpg"]
+  },
+  {
+    "title": "Sample Property #5",
+    "description": "Description for sample property 5.",
+    "type": "Apartment",
+    "price": 350000,
+    "bedrooms": 1,
+    "bathrooms": 3,
+    "area_sq_ft": 1500,
+    "address": {
+      "street": "50 Example Street",
+      "city": "Sample City",
+      "state": "Sample State",
+      "zip": "10005"
+    },
+    "contact": {
+      "name": "Agent 5",
+      "email": "agent5@example.com",
+      "phone": "(555) 000-1005"
+    },
+    "images": ["image5_1.jpg", "image5_2.jpg", "image5_3.jpg", "image5_4.jpg"]
+  },
+  {
+    "title": "Sample Property #6",
+    "description": "Description for sample property 6.",
+    "type": "House",
+    "price": 360000,
+    "bedrooms": 2,
+    "bathrooms": 1,
+    "area_sq_ft": 1600,
+    "address": {
+      "street": "60 Example Street",
+      "city": "Sample City",
+      "state": "Sample State",
+      "zip": "10006"
+    },
+    "contact": {
+      "name": "Agent 6",
+      "email": "agent6@example.com",
+      "phone": "(555) 000-1006"
+    },
+    "images": ["image6_1.jpg", "image6_2.jpg", "image6_3.jpg", "image6_4.jpg"]
+  },
+  {
+    "title": "Sample Property #7",
+    "description": "Description for sample property 7.",
+    "type": "Apartment",
+    "price": 370000,
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "area_sq_ft": 1700,
+    "address": {
+      "street": "70 Example Street",
+      "city": "Sample City",
+      "state": "Sample State",
+      "zip": "10007"
+    },
+    "contact": {
+      "name": "Agent 7",
+      "email": "agent7@example.com",
+      "phone": "(555) 000-1007"
+    },
+    "images": ["image7_1.jpg", "image7_2.jpg", "image7_3.jpg", "image7_4.jpg"]
+  },
+  {
+    "title": "Sample Property #8",
+    "description": "Description for sample property 8.",
+    "type": "House",
+    "price": 380000,
+    "bedrooms": 4,
+    "bathrooms": 3,
+    "area_sq_ft": 1800,
+    "address": {
+      "street": "80 Example Street",
+      "city": "Sample City",
+      "state": "Sample State",
+      "zip": "10008"
+    },
+    "contact": {
+      "name": "Agent 8",
+      "email": "agent8@example.com",
+      "phone": "(555) 000-1008"
+    },
+    "images": ["image8_1.jpg", "image8_2.jpg", "image8_3.jpg", "image8_4.jpg"]
+  },
+  {
+    "title": "Sample Property #9",
+    "description": "Description for sample property 9.",
+    "type": "Apartment",
+    "price": 390000,
+    "bedrooms": 5,
+    "bathrooms": 1,
+    "area_sq_ft": 1900,
+    "address": {
+      "street": "90 Example Street",
+      "city": "Sample City",
+      "state": "Sample State",
+      "zip": "10009"
+    },
+    "contact": {
+      "name": "Agent 9",
+      "email": "agent9@example.com",
+      "phone": "(555) 000-1009"
+    },
+    "images": ["image9_1.jpg", "image9_2.jpg", "image9_3.jpg", "image9_4.jpg"]
+  },
+  {
+    "title": "Sample Property #10",
+    "description": "Description for sample property 10.",
+    "type": "House",
+    "price": 400000,
+    "bedrooms": 1,
+    "bathrooms": 2,
+    "area_sq_ft": 2000,
+    "address": {
+      "street": "100 Example Street",
+      "city": "Sample City",
+      "state": "Sample State",
+      "zip": "100010"
+    },
+    "contact": {
+      "name": "Agent 10",
+      "email": "agent10@example.com",
+      "phone": "(555) 000-10010"
+    },
+    "images": [
+      "image10_1.jpg",
+      "image10_2.jpg",
+      "image10_3.jpg",
+      "image10_4.jpg"
+    ]
+  }
+]

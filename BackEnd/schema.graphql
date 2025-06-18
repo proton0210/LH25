@@ -1,3 +1,14 @@
+type User {
+  userId: ID!
+  cognitoUserId: String!
+  email: String!
+  firstName: String!
+  lastName: String!
+  contactNumber: String!
+  createdAt: AWSDateTime!
+  tier: String!
+}
+
 type Property {
   id: ID!
   title: String!
@@ -135,6 +146,9 @@ type Query {
     limit: Int
     nextToken: String
   ): PropertyConnection! @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  
+  # Get user details - users can view their own details, admins can view any user
+  getUserDetails(cognitoUserId: String!): User @aws_auth(cognito_groups: ["user", "paid", "admin"])
 }
 
 type Mutation {

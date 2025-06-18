@@ -17,6 +17,7 @@ import {
   isPaidUser,
   type AuthUser,
 } from '@/lib/auth';
+import { useUserStore } from '@/store/user-store';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userGroups, setUserGroups] = useState<string[]>([]);
+  const { setUser: setUserInStore, clearUser } = useUserStore();
 
   const refreshUser = async () => {
     try {
@@ -54,8 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (authUser) {
         const groups = await getUserGroups();
         setUserGroups(groups);
+        // Store user sub and email in Zustand store
+        setUserInStore(authUser.userId, authUser.email || '');
       } else {
         setUserGroups([]);
+        clearUser();
       }
     } catch (err) {
       console.error('Error refreshing user:', err);
@@ -76,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         case 'signedOut':
           setUser(null);
           setUserGroups([]);
+          clearUser();
           break;
         case 'tokenRefresh':
           refreshUser();
@@ -106,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signOut();
       setUser(null);
       setUserGroups([]);
+      clearUser();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign out');
       throw err;

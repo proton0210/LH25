@@ -39,29 +39,6 @@ export class BackEndStack extends cdk.Stack {
       }
     );
 
-    const postPasswordChangeLambda = new NodejsFunction(
-      this,
-      "PostPasswordChangeLambda",
-      {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        handler: "handler",
-        entry: path.join(
-          __dirname,
-          "../functions/post-password-change/handler.ts"
-        ),
-        bundling: {
-          minify: true,
-          sourceMap: true,
-          sourcesContent: false,
-          target: "node20",
-        },
-        environment: {
-          NODE_OPTIONS: "--enable-source-maps",
-        },
-        timeout: cdk.Duration.seconds(30),
-      }
-    );
-
     const userPool = new cognito.UserPool(this, "LHUserPool", {
       userPoolName: "lh-user-pool",
       selfSignUpEnabled: true,
@@ -105,7 +82,6 @@ export class BackEndStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       lambdaTriggers: {
         postConfirmation: postConfirmationLambda,
-        postAuthentication: postPasswordChangeLambda,
       },
     });
 
@@ -166,6 +142,15 @@ export class BackEndStack extends cdk.Stack {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       pointInTimeRecovery: true,
+    });
+
+    // Add GSI for cognitoUserId lookups
+    userTable.addGlobalSecondaryIndex({
+      indexName: "cognitoUserId",
+      partitionKey: {
+        name: "cognitoUserId",
+        type: dynamodb.AttributeType.STRING,
+      },
     });
 
     // Create S3 Bucket
@@ -348,6 +333,15 @@ export class BackEndStack extends cdk.Stack {
     // Grant PostConfirmation Lambda permission to start executions
     userCreationStateMachine.grantStartExecution(postConfirmationLambda);
 
+    // Grant PostConfirmation Lambda permission to add users to groups
+    // Using a wildcard to avoid circular dependency
+    postConfirmationLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["cognito-idp:AdminAddUserToGroup"],
+        resources: [`arn:aws:cognito-idp:${this.region}:${this.account}:userpool/*`],
+      })
+    );
+
     // Add state machine ARN to PostConfirmation Lambda environment
     postConfirmationLambda.addEnvironment(
       "USER_CREATION_STATE_MACHINE_ARN",
@@ -487,6 +481,7 @@ export class BackEndStack extends cdk.Stack {
     const resolverEnvironment = {
       PROPERTIES_TABLE_NAME: propertiesTable.tableName,
       PROPERTY_IMAGES_BUCKET_NAME: propertyImagesBucket.bucketName,
+      USER_TABLE_NAME: userTable.tableName,
     };
 
     // Get Upload URL Lambda
@@ -679,6 +674,28 @@ export class BackEndStack extends cdk.Stack {
       }
     );
 
+    // Get User Details Lambda
+    const getUserDetailsLambda = new NodejsFunction(
+      this,
+      "GetUserDetailsLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/get-user-details.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: resolverEnvironment,
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
     // Grant permissions
     propertiesTable.grantReadWriteData(createPropertyLambda);
     propertiesTable.grantReadData(getPropertyLambda);
@@ -688,6 +705,9 @@ export class BackEndStack extends cdk.Stack {
     propertiesTable.grantReadWriteData(deletePropertyLambda);
     propertiesTable.grantReadWriteData(approvePropertyLambda);
     propertiesTable.grantReadWriteData(rejectPropertyLambda);
+
+    // Grant user table permissions
+    userTable.grantReadData(getUserDetailsLambda);
 
     // Grant S3 permissions
     propertyImagesBucket.grantPut(getUploadUrlLambda);
@@ -739,11 +759,21 @@ export class BackEndStack extends cdk.Stack {
       rejectPropertyLambda
     );
 
+    const getUserDetailsDataSource = api.addLambdaDataSource(
+      "GetUserDetailsDataSource",
+      getUserDetailsLambda
+    );
+
     // Create Resolvers
     // Queries
     getPropertyDataSource.createResolver("GetPropertyResolver", {
       typeName: "Query",
       fieldName: "getProperty",
+    });
+
+    getUserDetailsDataSource.createResolver("GetUserDetailsResolver", {
+      typeName: "Query",
+      fieldName: "getUserDetails",
     });
 
     listPropertiesDataSource.createResolver("ListPropertiesResolver", {
@@ -864,11 +894,6 @@ export class BackEndStack extends cdk.Stack {
     new cdk.CfnOutput(this, "GraphQLApiId", {
       value: api.apiId,
       description: "The ID of the GraphQL API",
-    });
-
-    new cdk.CfnOutput(this, "PostPasswordChangeLambdaArn", {
-      value: postPasswordChangeLambda.functionArn,
-      description: "The ARN of the Post Password Change Lambda function",
     });
   }
 }

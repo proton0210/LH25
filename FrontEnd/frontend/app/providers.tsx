@@ -4,6 +4,7 @@ import { Amplify } from 'aws-amplify';
 import amplifyConfig from '@/lib/amplify-config';
 import { ReactNode, useEffect } from 'react';
 import { AuthProvider } from '@/hooks/useAuth';
+import { QueryProvider } from '@/providers/query-provider';
 
 Amplify.configure(amplifyConfig);
 
@@ -17,8 +18,10 @@ export function Providers({ children }: ProvidersProps) {
   }, []);
 
   return (
-    <AuthProvider>
-      {children}
-    </AuthProvider>
+    <QueryProvider>
+      <AuthProvider>
+        {children}
+      </AuthProvider>
+    </QueryProvider>
   );
 }
