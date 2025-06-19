@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { X, CreditCard, Loader2, Check } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, CreditCard, Loader2, Check, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api/graphql-client';
+import { useAuth } from '@/hooks/useAuth';
+import { useRouter } from 'next/navigation';
+import confetti from 'canvas-confetti';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -24,8 +27,47 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
     expiryYear: '',
     cvv: ''
   });
-
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { signOut } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (paymentStep === 'success') {
+      // Trigger confetti animation
+      const duration = 3 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      function randomInRange(min: number, max: number) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval: any = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        // since particles fall down, start a bit higher than random
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          colors: ['#f59e0b', '#f97316', '#fb923c', '#fbbf24', '#fcd34d']
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+          colors: ['#f59e0b', '#f97316', '#fb923c', '#fbbf24', '#fcd34d']
+        });
+      }, 250);
+
+      return () => clearInterval(interval);
+    }
+  }, [paymentStep]);
 
   if (!isOpen) return null;
 
@@ -106,10 +148,11 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
       
       if (result.success) {
         setPaymentStep('success');
-        setTimeout(() => {
-          onSuccess();
-          onClose();
-        }, 2000);
+        // Sign out and redirect to login after 5 seconds to allow user to read the message
+        setTimeout(async () => {
+          await signOut();
+          router.push('/login?upgraded=true');
+        }, 5000);
       } else {
         throw new Error(result.message || 'Payment failed');
       }
@@ -145,14 +188,17 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
             {paymentStep === 'form' && (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Fill Dummy Data Badge */}
-                <button
-                  type="button"
-                  onClick={fillDummyData}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full text-sm font-medium transition-colors"
-                >
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                  Fill Dummy Data
-                </button>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-grey-600">Enter your card details below</p>
+                  <button
+                    type="button"
+                    onClick={fillDummyData}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full text-sm font-medium transition-colors"
+                  >
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                    Use Test Card
+                  </button>
+                </div>
 
                 {/* Card Number */}
                 <div>
@@ -165,6 +211,9 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
                       value={formData.cardNumber}
                       onChange={(e) => handleInputChange('cardNumber', e.target.value.replace(/[^0-9\s]/g, ''))}
                       className={`pl-10 ${errors.cardNumber ? 'border-red-500' : ''}`}
+                      autoComplete="off"
+                      data-lpignore="true"
+                      data-form-type="other"
                     />
                     <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grey-400" />
                   </div>
@@ -183,6 +232,9 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
                     value={formData.cardHolder}
                     onChange={(e) => handleInputChange('cardHolder', e.target.value)}
                     className={errors.cardHolder ? 'border-red-500' : ''}
+                    autoComplete="off"
+                    data-lpignore="true"
+                    data-form-type="other"
                   />
                   {errors.cardHolder && (
                     <p className="text-sm text-red-500 mt-1">{errors.cardHolder}</p>
@@ -201,6 +253,9 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
                         value={formData.expiryMonth}
                         onChange={(e) => handleInputChange('expiryMonth', e.target.value.replace(/[^0-9]/g, ''))}
                         className={`w-16 ${errors.expiry ? 'border-red-500' : ''}`}
+                        autoComplete="off"
+                        data-lpignore="true"
+                        data-form-type="other"
                       />
                       <Input
                         type="text"
@@ -209,6 +264,9 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
                         value={formData.expiryYear}
                         onChange={(e) => handleInputChange('expiryYear', e.target.value.replace(/[^0-9]/g, ''))}
                         className={`w-16 ${errors.expiry ? 'border-red-500' : ''}`}
+                        autoComplete="off"
+                        data-lpignore="true"
+                        data-form-type="other"
                       />
                     </div>
                     {errors.expiry && (
@@ -225,6 +283,9 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
                       value={formData.cvv}
                       onChange={(e) => handleInputChange('cvv', e.target.value.replace(/[^0-9]/g, ''))}
                       className={errors.cvv ? 'border-red-500' : ''}
+                      autoComplete="off"
+                      data-lpignore="true"
+                      data-form-type="other"
                     />
                     {errors.cvv && (
                       <p className="text-sm text-red-500 mt-1">{errors.cvv}</p>
@@ -235,10 +296,10 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
                 {/* Test Card Info */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <p className="text-sm text-blue-800">
-                    <strong>Test Card:</strong> 4242 4242 4242 4242
+                    <strong>Test Mode:</strong> You can enter any card details or use our test card
                   </p>
                   <p className="text-xs text-blue-600 mt-1">
-                    Use any future expiry date and any 3-digit CVV
+                    Test card: 4242 4242 4242 4242 | Any future expiry | Any 3-digit CVV
                   </p>
                 </div>
 
@@ -266,12 +327,18 @@ export function PaymentModal({ isOpen, onClose, cognitoUserId, onSuccess }: Paym
             )}
 
             {paymentStep === 'success' && (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-green-600" />
+              <div className="text-center py-12 space-y-4">
+                <div className="w-20 h-20 bg-gradient-to-r from-amber-100 to-orange-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                  <PartyPopper className="w-10 h-10 text-orange-600" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Payment Successful!</h3>
-                <p className="text-grey-600">Welcome to Pro! Redirecting...</p>
+                <h3 className="text-2xl font-bold text-grey-900">Congratulations! 🎉</h3>
+                <p className="text-lg text-grey-700 font-medium">Welcome to Pro!</p>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mx-auto max-w-sm">
+                  <p className="text-sm text-amber-800">
+                    <strong>Important:</strong> You'll be redirected to sign in again to activate your Pro features.
+                  </p>
+                </div>
+                <p className="text-sm text-grey-500">Redirecting in a few seconds...</p>
               </div>
             )}
           </div>

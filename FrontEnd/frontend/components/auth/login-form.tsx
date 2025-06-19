@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { 
@@ -10,7 +10,9 @@ import {
   ArrowRight,
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,9 +26,24 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showUpgradeSuccess, setShowUpgradeSuccess] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState('');
+  const [confirmationCode, setConfirmationCode] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
   
   const router = useRouter();
-  const { signIn } = useAuth();
+  const searchParams = useSearchParams();
+  const { signIn, confirmSignUp, resendConfirmationCode } = useAuth();
+
+  useEffect(() => {
+    // Check if user was redirected after upgrade
+    if (searchParams.get('upgraded') === 'true') {
+      setShowUpgradeSuccess(true);
+      // Hide the message after 5 seconds
+      setTimeout(() => setShowUpgradeSuccess(false), 5000);
+    }
+  }, [searchParams]);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -35,6 +52,49 @@ export function LoginForm() {
       password: '',
     },
   });
+
+  const handleResendCode = async () => {
+    setResendLoading(true);
+    setError(null);
+    
+    try {
+      await resendConfirmationCode(confirmationEmail);
+      alert('Confirmation code sent! Please check your email.');
+    } catch (err) {
+      setError('Failed to resend confirmation code. Please try again.');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const handleConfirmAccount = async () => {
+    if (!confirmationCode.trim()) {
+      setError('Please enter the confirmation code');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await confirmSignUp(confirmationEmail, confirmationCode);
+      alert('Account confirmed successfully! You can now sign in.');
+      setShowConfirmation(false);
+      setConfirmationCode('');
+      // Clear the form
+      form.reset();
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message.includes('CodeMismatchException') 
+          ? 'Invalid confirmation code. Please try again.' 
+          : err.message);
+      } else {
+        setError('Failed to confirm account. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -49,6 +109,11 @@ export function LoginForm() {
           setError('No account found with this email address');
         } else if (err.message.includes('NotAuthorizedException')) {
           setError('Incorrect email or password');
+        } else if (err.message.includes('UserNotConfirmedException')) {
+          // User exists but hasn't confirmed their account
+          setConfirmationEmail(data.email);
+          setShowConfirmation(true);
+          setError(null);
         } else {
           setError(err.message);
         }
@@ -66,6 +131,14 @@ export function LoginForm() {
         <div className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 p-[1px]">
           <div className="bg-background">
             <CardHeader className="space-y-1 pb-6">
+              {showUpgradeSuccess && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <p className="text-sm text-green-800 font-medium">
+                    Upgrade successful! Please sign in to access your Pro features.
+                  </p>
+                </div>
+              )}
               <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
                 Welcome back
               </CardTitle>
@@ -180,6 +253,87 @@ export function LoginForm() {
           </div>
         </div>
       </Card>
+
+      {/* Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-md shadow-2xl border-0">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-2 text-amber-600 mb-2">
+                <AlertCircle className="w-6 h-6" />
+                <CardTitle className="text-xl">Confirm Your Account</CardTitle>
+              </div>
+              <CardDescription>
+                Your account needs to be confirmed. We've sent a confirmation code to{' '}
+                <span className="font-medium text-grey-900">{confirmationEmail}</span>
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="confirmationCode">Confirmation Code</Label>
+                <Input
+                  id="confirmationCode"
+                  type="text"
+                  placeholder="Enter 6-digit code"
+                  value={confirmationCode}
+                  onChange={(e) => setConfirmationCode(e.target.value)}
+                  className="mt-1"
+                  maxLength={6}
+                />
+              </div>
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleConfirmAccount}
+                  className="flex-1 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Confirming...
+                    </>
+                  ) : (
+                    'Confirm Account'
+                  )}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowConfirmation(false);
+                    setConfirmationCode('');
+                    setError(null);
+                  }}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+              </div>
+
+              <div className="text-center pt-2 border-t">
+                <p className="text-sm text-grey-600">
+                  Didn't receive the code?{' '}
+                  <button
+                    onClick={handleResendCode}
+                    disabled={resendLoading}
+                    className="text-pink-600 hover:text-pink-700 font-medium transition-colors disabled:opacity-50"
+                  >
+                    {resendLoading ? 'Sending...' : 'Resend Code'}
+                  </button>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

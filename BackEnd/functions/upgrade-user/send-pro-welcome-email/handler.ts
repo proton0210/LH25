@@ -1,10 +1,12 @@
 import { Resend } from "resend";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 
 export interface SendProWelcomeEmailInput {
   cognitoUserId: string;
   updatedGroup: string;
+  tierUpdated: boolean;
+  userId?: string;
 }
 
 const resend = new Resend("re_WNin6B7v_3QF8ARCP1ktzqWJjpiffqpXj");
@@ -25,17 +27,19 @@ export const handler = async (
   }
 
   try {
-    // Fetch user details from DynamoDB
-    const getUserCommand = new GetCommand({
+    // Fetch user details from DynamoDB using GSI
+    const getUserCommand = new QueryCommand({
       TableName: userTableName,
-      Key: {
-        cognitoUserId: cognitoUserId,
+      IndexName: "cognitoUserId",
+      KeyConditionExpression: "cognitoUserId = :cognitoUserId",
+      ExpressionAttributeValues: {
+        ":cognitoUserId": cognitoUserId,
       },
     });
 
     const userResult = await docClient.send(getUserCommand);
 
-    if (!userResult.Item) {
+    if (!userResult.Items || userResult.Items.length === 0) {
       console.error(
         `User not found in DynamoDB for cognitoUserId: ${cognitoUserId}`
       );
@@ -45,13 +49,13 @@ export const handler = async (
       };
     }
 
-    const user = userResult.Item;
+    const user = userResult.Items[0]; // Take the first item since cognitoUserId should be unique
     const toEmail = user.email as string;
     const name = user.firstName
       ? `${user.firstName} ${user.lastName || ""}`.trim()
       : user.email;
 
-    const emailSubject = "Welcome to Lambda Real Estate Pro!";
+    const emailSubject = "Welcome to Lambda Real Estate Pro - AI Features Unlocked!";
 
     const htmlBody = `
 <!DOCTYPE html>
@@ -64,17 +68,8 @@ export const handler = async (
     .header h1 { margin: 0; font-size: 28px; }
     .content { padding: 30px 0; }
     .pro-badge { display: inline-block; background: #FFD700; color: #333; padding: 8px 20px; border-radius: 20px; font-weight: bold; font-size: 16px; margin: 20px 0; }
-    .benefits { background-color: #f8f9fa; padding: 25px; border-radius: 10px; margin: 25px 0; }
-    .benefits h3 { color: #667eea; margin-top: 0; }
-    .benefits ul { list-style: none; padding: 0; }
-    .benefits li { padding: 10px 0; border-bottom: 1px solid #e9ecef; }
-    .benefits li:last-child { border-bottom: none; }
-    .benefits li:before { content: "✓ "; color: #28a745; font-weight: bold; font-size: 18px; }
-    .ai-section { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 10px; margin: 25px 0; }
-    .ai-section h3 { margin-top: 0; }
-    .ai-section ul { list-style: none; padding: 0; }
-    .ai-section li { padding: 8px 0; }
-    .ai-section li:before { content: "🤖 "; font-size: 16px; }
+    .ai-feature { background-color: #f8f9fa; padding: 25px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #667eea; }
+    .ai-feature h3 { color: #667eea; margin-top: 0; }
     .cta { background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0; }
     .footer { text-align: center; padding: 20px 0; color: #666; font-size: 14px; }
   </style>
@@ -82,50 +77,31 @@ export const handler = async (
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎉 Congratulations, ${name}!</h1>
+      <h1>Welcome to Pro, ${name}!</h1>
       <div class="pro-badge">PRO MEMBER</div>
     </div>
     <div class="content">
-      <p>You've successfully upgraded to <strong>Lambda Real Estate Pro</strong>! Welcome to our exclusive community of professional real estate users.</p>
+      <p>Your account has been successfully upgraded to Pro status.</p>
       
-      <div class="benefits">
-        <h3>Your Pro Benefits Include:</h3>
-        <ul>
-          <li>Unlimited property listings</li>
-          <li>Advanced search filters and saved searches</li>
-          <li>Priority listing visibility</li>
-          <li>Professional analytics dashboard</li>
-          <li>Direct messaging with potential buyers/sellers</li>
-          <li>Export property data and reports</li>
-          <li>Early access to new features</li>
-          <li>Dedicated pro user support</li>
-        </ul>
-      </div>
-
-      <div class="ai-section">
-        <h3>🚀 Exclusive AI Features Now Available!</h3>
-        <p>As a Pro member, you now have access to our cutting-edge AI-powered features:</p>
-        <ul>
-          <li><strong>AI Property Analysis:</strong> Get instant insights on property values, market trends, and investment potential</li>
-          <li><strong>Smart Search Recommendations:</strong> AI-powered suggestions based on your preferences and search history</li>
-          <li><strong>Automated Market Reports:</strong> Generate comprehensive market analysis reports with a single click</li>
-          <li><strong>Intelligent Property Matching:</strong> Find the perfect properties that match your exact criteria</li>
-          <li><strong>AI Chat Assistant:</strong> Get instant answers to your real estate questions and guidance</li>
+      <div class="ai-feature">
+        <h3>🤖 Bedrock AI Capabilities Now Available</h3>
+        <p>As a Pro member, you now have exclusive access to our <strong>Bedrock AI-powered report generation</strong> features:</p>
+        <ul style="list-style: none; padding-left: 0;">
+          <li style="padding: 8px 0;">📊 <strong>Market Analysis Reports</strong> - Generate comprehensive property market analysis</li>
+          <li style="padding: 8px 0;">📈 <strong>Investment Reports</strong> - AI-powered investment potential assessments</li>
+          <li style="padding: 8px 0;">🏠 <strong>Comparative Market Analysis</strong> - Instant property comparisons and valuations</li>
+          <li style="padding: 8px 0;">📝 <strong>Custom Reports</strong> - Create tailored reports for your specific needs</li>
         </ul>
       </div>
       
-      <p><strong>What's Next?</strong></p>
-      <p>Log in to your account to explore all the pro features and AI capabilities now available to you. Your account has been automatically upgraded and all pro features are immediately accessible.</p>
+      <p>Start using these AI features today to make smarter real estate decisions.</p>
       
       <div style="text-align: center;">
-        <a href="#" class="cta">Explore Pro Features & AI Tools</a>
+        <a href="#" class="cta">Start Generating AI Reports</a>
       </div>
-      
-      <p>If you have any questions about your pro membership, AI features, or need assistance getting started, our dedicated pro support team is here to help.</p>
     </div>
     <div class="footer">
-      <p>Thank you for choosing Lambda Real Estate Pro!<br>The Lambda Real Estate Team</p>
-      <p style="font-size: 12px; color: #999;">You're receiving this email because you upgraded your account to Pro status.</p>
+      <p>Best regards,<br>The Lambda Real Estate Team</p>
     </div>
   </div>
 </body>
@@ -133,35 +109,22 @@ export const handler = async (
     `.trim();
 
     const textBody = `
-Congratulations, ${name}!
+Welcome to Pro, ${name}!
 
-You've successfully upgraded to Lambda Real Estate Pro! Welcome to our exclusive community of professional real estate users.
+Your account has been successfully upgraded to Pro status.
 
-Your Pro Benefits Include:
-✓ Unlimited property listings
-✓ Advanced search filters and saved searches
-✓ Priority listing visibility
-✓ Professional analytics dashboard
-✓ Direct messaging with potential buyers/sellers
-✓ Export property data and reports
-✓ Early access to new features
-✓ Dedicated pro user support
+🤖 Bedrock AI Capabilities Now Available
 
-🚀 Exclusive AI Features Now Available!
-As a Pro member, you now have access to our cutting-edge AI-powered features:
+As a Pro member, you now have exclusive access to our Bedrock AI-powered report generation features:
 
-🤖 AI Property Analysis: Get instant insights on property values, market trends, and investment potential
-🤖 Smart Search Recommendations: AI-powered suggestions based on your preferences and search history
-🤖 Automated Market Reports: Generate comprehensive market analysis reports with a single click
-🤖 Intelligent Property Matching: Find the perfect properties that match your exact criteria
-🤖 AI Chat Assistant: Get instant answers to your real estate questions and guidance
+📊 Market Analysis Reports - Generate comprehensive property market analysis
+📈 Investment Reports - AI-powered investment potential assessments
+🏠 Comparative Market Analysis - Instant property comparisons and valuations
+📝 Custom Reports - Create tailored reports for your specific needs
 
-What's Next?
-Log in to your account to explore all the pro features and AI capabilities now available to you. Your account has been automatically upgraded and all pro features are immediately accessible.
+Start using these AI features today to make smarter real estate decisions.
 
-If you have any questions about your pro membership, AI features, or need assistance getting started, our dedicated pro support team is here to help.
-
-Thank you for choosing Lambda Real Estate Pro!
+Best regards,
 The Lambda Real Estate Team
     `.trim();
 

@@ -11,8 +11,6 @@ import {
   MapPin, 
   DollarSign, 
   Plus,
-  Search,
-  Filter,
   LogOut,
   User,
   Calendar,
@@ -22,7 +20,8 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Brain
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -30,14 +29,18 @@ import { format } from 'date-fns';
 import { useState } from 'react';
 import { api } from '@/lib/api/graphql-client';
 import { PaymentModal } from '@/components/payment/payment-modal';
+import { AIInsightsModal } from '@/components/property/ai-insights-modal';
 
 export default function ListingsPage() {
   const { user, signOut } = useAuth();
   const { userSub, email, clearUser } = useUserStore();
-  const { data: userDetails, isLoading: userLoading } = useUserDetails();
+  const { data: userDetails, isLoading: userLoading, refetch: refetchUserDetails } = useUserDetails();
   const router = useRouter();
   const [currentImageIndex, setCurrentImageIndex] = useState<{[key: string]: number}>({});
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
+  const [selectedPropertyForAI, setSelectedPropertyForAI] = useState<any>(null);
+  const [showAIInsights, setShowAIInsights] = useState(false);
 
   // Real property data
   const realProperties = [
@@ -203,12 +206,28 @@ export default function ListingsPage() {
                 )}
               </div>
               <div className="flex items-center gap-4">
-                <Link href="/list-property">
-                  <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white">
-                    <Plus className="w-4 h-4 mr-2" />
-                    List Property
-                  </Button>
-                </Link>
+                {userDetails?.tier === 'admin' ? (
+                  <Link href="/admin">
+                    <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white">
+                      To Admin Page
+                    </Button>
+                  </Link>
+                ) : (
+                  <>
+                    <Link href="/my-listings">
+                      <Button variant="outline" className="border-pink-200 hover:bg-pink-50 text-pink-700">
+                        <Home className="w-4 h-4 mr-2" />
+                        My Listings
+                      </Button>
+                    </Link>
+                    <Link href="/list-property">
+                      <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white">
+                        <Plus className="w-4 h-4 mr-2" />
+                        List Property
+                      </Button>
+                    </Link>
+                  </>
+                )}
                 <Button 
                   variant="outline" 
                   onClick={handleSignOut}
@@ -230,46 +249,69 @@ export default function ListingsPage() {
               <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
             </div>
           ) : userDetails ? (
-            <Card className="mb-8 overflow-hidden">
-              <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 p-[1px]">
-                <CardHeader className="bg-white">
+            <Card className="mb-8 overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <div className="bg-gradient-to-r from-pink-50 to-purple-50">
+                <CardHeader className="pb-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                        {userDetails.firstName.charAt(0)}{userDetails.lastName.charAt(0)}
-                      </div>
-                      <div>
-                        <CardTitle className="text-2xl bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                          {userDetails.firstName} {userDetails.lastName}
-                        </CardTitle>
-                        <CardDescription className="text-grey-600">
-                          Member since {format(new Date(userDetails.createdAt), 'MMMM yyyy')}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {userDetails.tier === 'paid' && (
-                        <div className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                          <Crown className="w-4 h-4" />
-                          Premium
+                    <div className="flex items-center gap-5">
+                      <div className="relative">
+                        <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+                          {userDetails.firstName.charAt(0)}{userDetails.lastName.charAt(0)}
                         </div>
-                      )}
+                        {userDetails.tier === 'paid' && (
+                          <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full p-1.5 shadow-md">
+                            <Crown className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                        {userDetails.tier === 'admin' && (
+                          <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 rounded-full p-1.5 shadow-md">
+                            <Crown className="w-4 h-4 text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-3">
+                          <CardTitle className="text-2xl font-bold text-grey-900">
+                            {userDetails.firstName} {userDetails.lastName}
+                          </CardTitle>
+                          {userDetails.tier === 'paid' && (
+                            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                              PRO MEMBER
+                            </span>
+                          )}
+                          {userDetails.tier === 'admin' && (
+                            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                              ADMIN
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-grey-600">
+                          <Calendar className="w-4 h-4" />
+                          <span className="text-sm">Member since {format(new Date(userDetails.createdAt), 'MMMM yyyy')}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="bg-white pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="flex items-center gap-3 text-grey-700">
-                      <Mail className="w-5 h-5 text-pink-500" />
-                      <span className="text-sm">{userDetails.email}</span>
+                <CardContent className="bg-white/70 backdrop-blur-sm border-t border-grey-100">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-3">
+                    <div className="flex items-center gap-3 group">
+                      <div className="p-2 bg-pink-100 rounded-lg group-hover:bg-pink-200 transition-colors">
+                        <Mail className="w-5 h-5 text-pink-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-grey-500">Email</p>
+                        <p className="text-sm font-medium text-grey-900">{userDetails.email}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 text-grey-700">
-                      <Phone className="w-5 h-5 text-pink-500" />
-                      <span className="text-sm">{userDetails.contactNumber}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-grey-700">
-                      <User className="w-5 h-5 text-pink-500" />
-                      <span className="text-sm">ID: {userDetails.userId}</span>
+                    <div className="flex items-center gap-3 group">
+                      <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                        <Phone className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-grey-500">Contact</p>
+                        <p className="text-sm font-medium text-grey-900">{userDetails.contactNumber}</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -286,23 +328,6 @@ export default function ListingsPage() {
             </div>
           )}
 
-          {/* Search and Filter Bar */}
-          <div className="bg-white rounded-lg shadow-sm border border-grey-100 p-4 mb-8">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-grey-400" />
-                <input
-                  type="text"
-                  placeholder="Search by location, property type..."
-                  className="w-full pl-10 pr-4 py-2 border border-grey-200 rounded-lg focus:outline-none focus:border-pink-500 focus:ring-1 focus:ring-pink-500"
-                />
-              </div>
-              <Button variant="outline" className="border-grey-200 hover:bg-grey-50">
-                <Filter className="w-4 h-4 mr-2" />
-                Filters
-              </Button>
-            </div>
-          </div>
 
           {/* Property Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -396,6 +421,59 @@ export default function ListingsPage() {
                     <div className="pt-2 border-t border-grey-100">
                       <p className="text-sm text-grey-600 line-clamp-2">{property.description}</p>
                     </div>
+                    
+                    {/* AI Insights / Upgrade Section */}
+                    <div className="pt-3 mt-3 border-t border-grey-100">
+                      {userDetails?.tier === 'user' ? (
+                        <div 
+                          className="relative"
+                          onMouseEnter={() => setHoveredPropertyId(property.id)}
+                          onMouseLeave={() => setHoveredPropertyId(null)}
+                        >
+                          <button className="w-full flex items-center justify-center gap-2 py-2 text-amber-600 hover:text-amber-700 transition-colors">
+                            <Crown className="w-5 h-5" />
+                            <span className="text-sm font-medium">AI Insights</span>
+                          </button>
+                          
+                          {/* Hover Modal */}
+                          {hoveredPropertyId === property.id && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-4 bg-grey-900 text-white rounded-lg shadow-xl z-10 w-64">
+                              <div className="text-center space-y-2">
+                                <Sparkles className="w-8 h-8 text-amber-400 mx-auto" />
+                                <h4 className="font-semibold">Unlock AI Property Insights</h4>
+                                <p className="text-sm text-grey-300">
+                                  Get detailed AI-powered analysis, price predictions, and investment recommendations.
+                                </p>
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowPaymentModal(true);
+                                  }}
+                                  className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 w-full"
+                                >
+                                  Upgrade to Pro
+                                </Button>
+                              </div>
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 -translate-y-1 w-0 h-0 border-l-8 border-r-8 border-t-8 border-transparent border-t-grey-900"></div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPropertyForAI(property);
+                            setShowAIInsights(true);
+                          }}
+                          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                        >
+                          <Brain className="w-4 h-4 mr-2" />
+                          Generate AI Insights
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -427,6 +505,16 @@ export default function ListingsPage() {
           onSuccess={handlePaymentSuccess}
         />
       )}
+
+      {/* AI Insights Modal */}
+      <AIInsightsModal
+        isOpen={showAIInsights}
+        onClose={() => {
+          setShowAIInsights(false);
+          setSelectedPropertyForAI(null);
+        }}
+        property={selectedPropertyForAI}
+      />
     </ProtectedRoute>
   );
 }

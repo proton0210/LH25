@@ -1,6 +1,7 @@
 {
   "BackEndStack": {
     "GraphQLApiId": "iivw24s5xffwjbtrkke2qfnlaq",
+    "UpgradeUserStateMachineArn": "arn:aws:states:ap-south-1:585768150182:stateMachine:upgrade-user-to-paid-workflow",
     "UserTableName": "lh-users",
     "UserFilesBucketName": "lh-user-files-585768150182-ap-south-1",
     "PostConfirmationLambdaArn": "arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostConfirmationLambdaC4F60401-J2ZDyJ1DyHxF",

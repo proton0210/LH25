@@ -9,9 +9,12 @@ export function useUserDetails() {
     queryKey: ['userDetails', userSub],
     queryFn: () => api.getUserDetails(userSub!),
     enabled: !!userSub,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 0, // Always consider data stale
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchInterval: false,
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: 'always', // Always refetch on mount
   });
 }

@@ -18,7 +18,8 @@ import {
   BedDouble,
   Bath,
   Square,
-  Building
+  Building,
+  ArrowLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,230 @@ export function PropertyListingForm() {
   const router = useRouter();
   const { user } = useAuth();
 
+  // Sample property data for different property types
+  const sampleProperties = [
+    {
+      title: 'Stunning Modern Condo with City Views',
+      description: 'Experience luxury living in this beautifully designed 2-bedroom condo featuring floor-to-ceiling windows, premium finishes, and breathtaking city skyline views. The open-concept layout includes a gourmet kitchen with quartz countertops, stainless steel appliances, and a spacious island perfect for entertaining. Both bedrooms offer ample natural light and the master suite includes a walk-in closet. Building amenities include 24/7 concierge, fitness center, rooftop terrace, and secured parking.',
+      propertyType: 'Condo',
+      price: 750000,
+      bedrooms: 2,
+      bathrooms: 2,
+      area: 1200,
+      address: '500 Park Avenue',
+      city: 'New York',
+      state: 'NY',
+      zipCode: '10022',
+      contactName: 'Sarah Johnson',
+      contactEmail: 'sarah.johnson@luxuryrealty.com',
+      contactPhone: '(212) 555-7890',
+      images: [
+        'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1565182999561-18d7dc61c393?w=800&h=600&fit=crop'
+      ]
+    },
+    {
+      title: 'Spacious Family Home with Pool',
+      description: 'Welcome to this beautiful 4-bedroom family home situated on a quiet cul-de-sac. This property features a newly renovated kitchen with granite countertops, hardwood floors throughout, and a master bedroom with en-suite bathroom. The backyard oasis includes a heated swimming pool, covered patio, and professionally landscaped gardens. Additional features include a 3-car garage, home office, finished basement with recreation room, and energy-efficient HVAC system. Located in a top-rated school district.',
+      propertyType: 'House',
+      price: 890000,
+      bedrooms: 4,
+      bathrooms: 3.5,
+      area: 3200,
+      address: '1425 Oak Ridge Drive',
+      city: 'Austin',
+      state: 'TX',
+      zipCode: '78759',
+      contactName: 'Michael Chen',
+      contactEmail: 'mchen@premierproperties.com',
+      contactPhone: '(512) 555-4321',
+      images: [
+        'https://images.unsplash.com/photo-1601760562234-9814eea6663a?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1598228723793-52759bba239c?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1567684014761-b65e2e59b9eb?w=800&h=600&fit=crop'
+      ]
+    },
+    {
+      title: 'Charming Studio Apartment in Historic Building',
+      description: 'Cozy studio apartment in a beautifully maintained historic building. Features include exposed brick walls, high ceilings, hardwood floors, and large windows providing excellent natural light. The efficient layout maximizes space with a Murphy bed, built-in storage, and a fully equipped kitchenette. Building amenities include laundry facilities, bike storage, and a communal rooftop deck with city views. Perfect for students or young professionals. Heat and hot water included.',
+      propertyType: 'Apartment',
+      price: 1850,
+      bedrooms: 0,
+      bathrooms: 1,
+      area: 450,
+      address: '88 Commonwealth Avenue',
+      city: 'Boston',
+      state: 'MA',
+      zipCode: '02116',
+      contactName: 'Emily Rodriguez',
+      contactEmail: 'emily@bostonrentals.com',
+      contactPhone: '(617) 555-2468',
+      images: [
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1540932239986-30128078f3c5?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop'
+      ]
+    },
+    {
+      title: 'Luxury Beachfront Villa with Private Access',
+      description: 'Escape to paradise in this exquisite 5-bedroom beachfront villa. Features include panoramic ocean views from every room, chef\'s kitchen with high-end appliances, master suite with spa-like bathroom and private balcony, infinity pool overlooking the beach, and direct beach access via private stairs. The property includes smart home technology, hurricane-impact windows, whole-house generator, and a separate guest house. Perfect for vacation rental investment or primary residence.',
+      propertyType: 'House',
+      price: 2850000,
+      bedrooms: 5,
+      bathrooms: 4.5,
+      area: 4800,
+      address: '2150 Ocean Boulevard',
+      city: 'Miami Beach',
+      state: 'FL',
+      zipCode: '33139',
+      contactName: 'Carlos Martinez',
+      contactEmail: 'cmartinez@beachfrontestates.com',
+      contactPhone: '(305) 555-9876',
+      images: [
+        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1615571022219-eb45cf7faa9d?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop'
+      ]
+    },
+    {
+      title: 'Mountain Retreat Cabin with Spectacular Views',
+      description: 'Rustic luxury meets modern comfort in this stunning 3-bedroom log cabin. Nestled on 5 acres of private forest, features include vaulted ceilings with exposed beams, stone fireplace, gourmet kitchen with custom cabinetry, wraparound deck with hot tub, and floor-to-ceiling windows showcasing mountain views. Property includes hiking trails, seasonal creek, detached workshop/garage, and is minutes from ski resorts. Fully furnished and turn-key ready.',
+      propertyType: 'House',
+      price: 675000,
+      bedrooms: 3,
+      bathrooms: 2.5,
+      area: 2400,
+      address: '15 Pine Ridge Road',
+      city: 'Aspen',
+      state: 'CO',
+      zipCode: '81611',
+      contactName: 'Jennifer Walsh',
+      contactEmail: 'jwalsh@mountainproperties.com',
+      contactPhone: '(970) 555-3456',
+      images: [
+        'https://images.unsplash.com/photo-1518780664697-55e3ad937233?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1542718610-a1d656d1884c?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1510798831971-661eb04b3739?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?w=800&h=600&fit=crop'
+      ]
+    },
+    {
+      title: 'Urban Loft in Converted Warehouse District',
+      description: 'Industrial chic at its finest in this spectacular 2-bedroom + den loft. Original features include 14-foot ceilings, exposed brick walls, oversized windows, and polished concrete floors. Modern updates feature open kitchen with island, spa-inspired bathrooms, custom closets, and in-unit laundry. Building offers rooftop garden, gym, co-working spaces, and pet spa. Walk to trendy restaurants, galleries, and public transit. Live/work permitted.',
+      propertyType: 'Condo',
+      price: 3200,
+      bedrooms: 2,
+      bathrooms: 2,
+      area: 1650,
+      address: '421 Warehouse Way',
+      city: 'Seattle',
+      state: 'WA',
+      zipCode: '98121',
+      contactName: 'David Park',
+      contactEmail: 'dpark@urbanlivingseattle.com',
+      contactPhone: '(206) 555-7823',
+      images: [
+        'https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1527359443443-84a48aec73d2?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800&h=600&fit=crop'
+      ]
+    },
+    {
+      title: 'Elegant Brownstone in Prime Location',
+      description: 'Meticulously restored 1890s brownstone offering 4 floors of luxury living. Original details preserved including ornate moldings, marble fireplaces, and herringbone floors. Modern amenities include chef\'s kitchen with butler\'s pantry, luxurious master suite with dressing room, home theater, wine cellar, and private garden with outdoor kitchen. Located on tree-lined street near parks, museums, and top schools. Rare opportunity for sophisticated city living.',
+      propertyType: 'House',
+      price: 3750000,
+      bedrooms: 5,
+      bathrooms: 4,
+      area: 5200,
+      address: '34 Beacon Street',
+      city: 'Boston',
+      state: 'MA',
+      zipCode: '02108',
+      contactName: 'Margaret Sullivan',
+      contactEmail: 'msullivan@beaconhillrealty.com',
+      contactPhone: '(617) 555-9012',
+      images: [
+        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600563438938-a9a27216b4f5?w=800&h=600&fit=crop'
+      ]
+    },
+    {
+      title: 'Golf Course Estate with Resort Amenities',
+      description: 'Prestigious estate home on the 9th fairway offering panoramic golf course and mountain views. This 6-bedroom masterpiece features grand foyer with dual staircases, formal living and dining rooms, gourmet kitchen with commercial appliances, temperature-controlled wine room, home office with built-ins, game room with wet bar, and resort-style backyard with pool, spa, outdoor kitchen, and fire pit. Community offers championship golf, tennis, and dining.',
+      propertyType: 'House',
+      price: 1650000,
+      bedrooms: 6,
+      bathrooms: 5.5,
+      area: 6500,
+      address: '7 Championship Drive',
+      city: 'Scottsdale',
+      state: 'AZ',
+      zipCode: '85255',
+      contactName: 'Robert Thompson',
+      contactEmail: 'rthompson@luxurygolfestates.com',
+      contactPhone: '(480) 555-4567',
+      images: [
+        'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop'
+      ]
+    },
+    {
+      title: 'Modern Farmhouse on Acreage',
+      description: 'Contemporary farmhouse design meets country living on 10 scenic acres. Features include open floor plan with vaulted ceilings, designer kitchen with farmhouse sink and professional range, master suite with barn door and soaking tub, mudroom with built-ins, and screened porch overlooking pastures. Property includes horse barn with 4 stalls, riding arena, chicken coop, vegetable garden, and pond. Perfect blend of rural tranquility and modern luxury.',
+      propertyType: 'House',
+      price: 985000,
+      bedrooms: 4,
+      bathrooms: 3,
+      area: 3400,
+      address: '892 Country Lane',
+      city: 'Nashville',
+      state: 'TN',
+      zipCode: '37215',
+      contactName: 'Ashley Davis',
+      contactEmail: 'adavis@countryliving.com',
+      contactPhone: '(615) 555-2890',
+      images: [
+        'https://images.unsplash.com/photo-1625602812206-5ec545ca1231?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600210492493-0946911123ea?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1604014237800-1c9102c219da?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1599427303058-f04cbcf4756f?w=800&h=600&fit=crop'
+      ]
+    },
+    {
+      title: 'Eco-Friendly Smart Home with Solar',
+      description: 'Net-zero energy home showcasing sustainable luxury. Features include solar panels with battery backup, geothermal heating/cooling, rainwater collection system, electric car charging station, smart home automation, triple-pane windows, and toxin-free materials throughout. Open design with clerestory windows, bamboo floors, quartz counters, and energy-star appliances. Low-maintenance xeriscaped yard with native plants. Live sustainably without compromise.',
+      propertyType: 'House',
+      price: 1125000,
+      bedrooms: 3,
+      bathrooms: 2.5,
+      area: 2800,
+      address: '55 Green Valley Road',
+      city: 'Portland',
+      state: 'OR',
+      zipCode: '97210',
+      contactName: 'Lisa Green',
+      contactEmail: 'lgreen@ecohomesnw.com',
+      contactPhone: '(503) 555-6789',
+      images: [
+        'https://images.unsplash.com/photo-1558036117-15d82a90b9b1?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1556909114-44e3e70034e2?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=800&h=600&fit=crop'
+      ]
+    }
+  ];
+
   const form = useForm<PropertyFormData>({
     resolver: zodResolver(propertySchema),
     defaultValues: {
@@ -56,6 +281,44 @@ export function PropertyListingForm() {
       area: 0,
     },
   });
+
+  const fillSampleData = async () => {
+    // Select a random sample property
+    const randomProperty = sampleProperties[Math.floor(Math.random() * sampleProperties.length)];
+    
+    // Fill form fields
+    form.setValue('title', randomProperty.title);
+    form.setValue('description', randomProperty.description);
+    form.setValue('propertyType', randomProperty.propertyType as any);
+    form.setValue('price', randomProperty.price);
+    form.setValue('bedrooms', randomProperty.bedrooms);
+    form.setValue('bathrooms', randomProperty.bathrooms);
+    form.setValue('area', randomProperty.area);
+    form.setValue('address', randomProperty.address);
+    form.setValue('city', randomProperty.city);
+    form.setValue('state', randomProperty.state as any);
+    form.setValue('zipCode', randomProperty.zipCode);
+    form.setValue('contactName', randomProperty.contactName);
+    form.setValue('contactEmail', randomProperty.contactEmail);
+    form.setValue('contactPhone', randomProperty.contactPhone);
+    
+    // Set image previews (for display purposes)
+    setImagePreviews(randomProperty.images);
+    
+    // Create dummy File objects for form validation
+    const dummyFiles = randomProperty.images.map((url, index) => {
+      const file = new File(['dummy'], `property-image-${index + 1}.jpg`, { type: 'image/jpeg' });
+      // Store the URL as a property on the file for later use
+      (file as any).dummyUrl = url;
+      return file;
+    });
+    
+    setImageFiles(dummyFiles);
+    form.setValue('images', dummyFiles);
+    
+    // Clear any errors
+    setError(null);
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -112,17 +375,23 @@ export function PropertyListingForm() {
       
       for (let i = 0; i < imageFiles.length; i++) {
         const file = imageFiles[i];
-        const key = generateFileKey(user.userId, file.name, 'properties');
         
-        await uploadFile(key, file, {
-          contentType: file.type,
-          onProgress: (progress) => {
-            setUploadProgress(Math.round((i / imageFiles.length) * 100 + (progress.percentage / imageFiles.length)));
-          },
-        });
+        // Check if this is a dummy file with a URL
+        if ((file as any).dummyUrl) {
+          imageUrls.push((file as any).dummyUrl);
+        } else {
+          const key = generateFileKey(user.userId, file.name, 'properties');
+          
+          await uploadFile(key, file, {
+            contentType: file.type,
+            onProgress: (progress) => {
+              setUploadProgress(Math.round((i / imageFiles.length) * 100 + (progress.percentage / imageFiles.length)));
+            },
+          });
 
-        // Get the URL for the uploaded image
-        imageUrls.push(key);
+          // Get the URL for the uploaded image
+          imageUrls.push(key);
+        }
       }
 
       // Here you would submit the property data to your API
@@ -150,6 +419,18 @@ export function PropertyListingForm() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-grey-50 to-white py-12">
       <div className="container mx-auto px-6">
+        {/* Back Button */}
+        <div className="max-w-4xl mx-auto mb-4">
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/listings')}
+            className="flex items-center gap-2 text-grey-600 hover:text-grey-900"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Listings
+          </Button>
+        </div>
+        
         <Card className="max-w-4xl mx-auto shadow-xl border-0">
           <div className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 p-[1px]">
             <div className="bg-background">
@@ -160,6 +441,16 @@ export function PropertyListingForm() {
                 <CardDescription className="text-center text-grey-600">
                   Reach thousands of verified buyers with zero brokerage
                 </CardDescription>
+                <div className="flex justify-center mt-4">
+                  <button
+                    type="button"
+                    onClick={fillSampleData}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full text-sm font-medium transition-colors"
+                  >
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                    Fill Sample Data
+                  </button>
+                </div>
               </CardHeader>
 
               <CardContent className="px-8 pb-8">

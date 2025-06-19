@@ -845,6 +845,29 @@ export class BackEndStack extends cdk.Stack {
       }
     );
 
+    const updateUserTierLambda = new NodejsFunction(
+      this,
+      "UpdateUserTierLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/upgrade-user/update-user-tier/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_TABLE_NAME: userTable.tableName,
+        },
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
     const sendProWelcomeEmailLambda = new NodejsFunction(
       this,
       "SendProWelcomeEmailLambda",
@@ -869,6 +892,7 @@ export class BackEndStack extends cdk.Stack {
     );
 
     // Grant permissions
+    userTable.grantReadWriteData(updateUserTierLambda);
     userTable.grantReadData(sendProWelcomeEmailLambda);
     
     // Grant permission to update Cognito groups
@@ -892,6 +916,15 @@ export class BackEndStack extends cdk.Stack {
       }
     );
 
+    const updateUserTierTask = new tasks.LambdaInvoke(
+      this,
+      "UpdateUserTierTask",
+      {
+        lambdaFunction: updateUserTierLambda,
+        outputPath: "$.Payload",
+      }
+    );
+
     const sendProWelcomeEmailTask = new tasks.LambdaInvoke(
       this,
       "SendProWelcomeEmailTask",
@@ -904,6 +937,7 @@ export class BackEndStack extends cdk.Stack {
 
     // Define the upgrade user state machine
     const upgradeUserDefinition = updateCognitoGroupTask
+      .next(updateUserTierTask)
       .next(sendProWelcomeEmailTask);
 
     const upgradeUserStateMachine = new sfn.StateMachine(

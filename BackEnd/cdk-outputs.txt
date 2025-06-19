@@ -1,5 +1,5 @@
 # CDK Stack Outputs
-# Generated on: 2025-06-18T14:48:06.482Z
+# Generated on: 2025-06-19T10:30:52.344Z
 
 AdminGroupName=admin
 GraphQLApiId=iivw24s5xffwjbtrkke2qfnlaq
@@ -10,6 +10,7 @@ PropertiesTableName=lh-properties
 PropertyImagesBucketName=lh-property-images-585768150182-ap-south-1
 ResendAPIKeyNote=Deploy with: npx cdk deploy --context resendApiKey=YOUR_RESEND_API_KEY
 ResendConfigurationNote=Remember to add your domain to Resend and configure your Resend API key
+UpgradeUserStateMachineArn=arn:aws:states:ap-south-1:585768150182:stateMachine:upgrade-user-to-paid-workflow
 UserCreationStateMachineArn=arn:aws:states:ap-south-1:585768150182:stateMachine:user-creation-workflow
 UserFilesBucketName=lh-user-files-585768150182-ap-south-1
 UserGroupName=user
@@ -27,6 +28,7 @@ export PROPERTIES_TABLE_NAME="lh-properties"
 export PROPERTY_IMAGES_BUCKET_NAME="lh-property-images-585768150182-ap-south-1"
 export RESEND_A_P_I_KEY_NOTE="Deploy with: npx cdk deploy --context resendApiKey=YOUR_RESEND_API_KEY"
 export RESEND_CONFIGURATION_NOTE="Remember to add your domain to Resend and configure your Resend API key"
+export UPGRADE_USER_STATE_MACHINE_ARN="arn:aws:states:ap-south-1:585768150182:stateMachine:upgrade-user-to-paid-workflow"
 export USER_CREATION_STATE_MACHINE_ARN="arn:aws:states:ap-south-1:585768150182:stateMachine:user-creation-workflow"
 export USER_FILES_BUCKET_NAME="lh-user-files-585768150182-ap-south-1"
 export USER_GROUP_NAME="user"

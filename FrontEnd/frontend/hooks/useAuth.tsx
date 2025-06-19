@@ -2,6 +2,7 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { Hub } from 'aws-amplify/utils';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   signIn,
   signOut,
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [userGroups, setUserGroups] = useState<string[]>([]);
   const { setUser: setUserInStore, clearUser } = useUserStore();
+  const queryClient = useQueryClient();
 
   const refreshUser = async () => {
     try {
@@ -76,14 +78,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const hubListener = Hub.listen('auth', ({ payload }) => {
       switch (payload.event) {
         case 'signedIn':
+          // Invalidate cache when user signs in
+          queryClient.invalidateQueries({ queryKey: ['userDetails'] });
           refreshUser();
           break;
         case 'signedOut':
           setUser(null);
           setUserGroups([]);
           clearUser();
+          // Clear all cached data on sign out
+          queryClient.clear();
           break;
         case 'tokenRefresh':
+          // Invalidate cache on token refresh
+          queryClient.invalidateQueries({ queryKey: ['userDetails'] });
           refreshUser();
           break;
         case 'tokenRefresh_failure':
@@ -99,6 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setError(null);
       await signIn(email, password);
+      // Invalidate user details cache to force fresh fetch
+      queryClient.invalidateQueries({ queryKey: ['userDetails'] });
       await refreshUser();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sign in');
