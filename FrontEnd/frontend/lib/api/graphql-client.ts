@@ -245,4 +245,25 @@ export const api = {
       throw error;
     }
   },
+
+  async upgradeUserToPaid(cognitoUserId: string): Promise<{
+    success: boolean;
+    message: string;
+    executionArn?: string;
+  }> {
+    try {
+      const result = await client.graphql({
+        query: mutations.upgradeUserToPaid,
+        variables: { cognitoUserId },
+        authMode: 'userPool',
+      });
+      if ("data" in result) {
+        return result.data.upgradeUserToPaid;
+      }
+      throw new Error("Unexpected GraphQL result type");
+    } catch (error) {
+      console.error("Error upgrading user:", error);
+      throw error;
+    }
+  },
 };

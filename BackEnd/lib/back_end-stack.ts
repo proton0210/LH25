@@ -817,6 +817,144 @@ export class BackEndStack extends cdk.Stack {
       fieldName: "rejectProperty",
     });
 
+    // =====================================================
+    // UPGRADE USER TO PAID TIER FUNCTIONALITY
+    // =====================================================
+
+    // Create Lambda functions for upgrade workflow
+    const updateCognitoGroupLambda = new NodejsFunction(
+      this,
+      "UpdateCognitoGroupLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/upgrade-user/update-cognito-group/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_POOL_ID: userPool.userPoolId,
+        },
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    const sendProWelcomeEmailLambda = new NodejsFunction(
+      this,
+      "SendProWelcomeEmailLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/upgrade-user/send-pro-welcome-email/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_TABLE_NAME: userTable.tableName,
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+
+    // Grant permissions
+    userTable.grantReadData(sendProWelcomeEmailLambda);
+    
+    // Grant permission to update Cognito groups
+    updateCognitoGroupLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "cognito-idp:AdminAddUserToGroup",
+          "cognito-idp:AdminRemoveUserFromGroup"
+        ],
+        resources: [userPool.userPoolArn],
+      })
+    );
+
+    // Create Step Functions tasks for upgrade workflow
+    const updateCognitoGroupTask = new tasks.LambdaInvoke(
+      this,
+      "UpdateCognitoGroupTask",
+      {
+        lambdaFunction: updateCognitoGroupLambda,
+        outputPath: "$.Payload",
+      }
+    );
+
+    const sendProWelcomeEmailTask = new tasks.LambdaInvoke(
+      this,
+      "SendProWelcomeEmailTask",
+      {
+        lambdaFunction: sendProWelcomeEmailLambda,
+        outputPath: "$.Payload",
+        retryOnServiceExceptions: true,
+      }
+    );
+
+    // Define the upgrade user state machine
+    const upgradeUserDefinition = updateCognitoGroupTask
+      .next(sendProWelcomeEmailTask);
+
+    const upgradeUserStateMachine = new sfn.StateMachine(
+      this,
+      "UpgradeUserStateMachine",
+      {
+        stateMachineName: "upgrade-user-to-paid-workflow",
+        definition: upgradeUserDefinition,
+        timeout: cdk.Duration.minutes(5),
+      }
+    );
+
+    // Create AppSync resolver Lambda for upgrade user
+    const upgradeUserToPaidLambda = new NodejsFunction(
+      this,
+      "UpgradeUserToPaidLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/upgrade-user-to-paid.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_POOL_ID: userPool.userPoolId,
+          UPGRADE_USER_STATE_MACHINE_ARN: upgradeUserStateMachine.stateMachineArn,
+        },
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    // Grant permission to start Step Functions execution
+    upgradeUserStateMachine.grantStartExecution(upgradeUserToPaidLambda);
+
+    // Create data source and resolver
+    const upgradeUserToPaidDataSource = api.addLambdaDataSource(
+      "UpgradeUserToPaidDataSource",
+      upgradeUserToPaidLambda
+    );
+
+    upgradeUserToPaidDataSource.createResolver("UpgradeUserToPaidResolver", {
+      typeName: "Mutation",
+      fieldName: "upgradeUserToPaid",
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "UserPoolId", {
       value: userPool.userPoolId,
@@ -861,6 +999,11 @@ export class BackEndStack extends cdk.Stack {
     new cdk.CfnOutput(this, "UserCreationStateMachineArn", {
       value: userCreationStateMachine.stateMachineArn,
       description: "The ARN of the User Creation Step Functions state machine",
+    });
+
+    new cdk.CfnOutput(this, "UpgradeUserStateMachineArn", {
+      value: upgradeUserStateMachine.stateMachineArn,
+      description: "The ARN of the Upgrade User to Paid Step Functions state machine",
     });
 
     new cdk.CfnOutput(this, "ResendConfigurationNote", {

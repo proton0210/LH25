@@ -80,3 +80,13 @@ export const getUploadUrl = /* GraphQL */ `
     }
   }
 `;
+
+export const upgradeUserToPaid = /* GraphQL */ `
+  mutation UpgradeUserToPaid($cognitoUserId: String!) {
+    upgradeUserToPaid(cognitoUserId: $cognitoUserId) {
+      success
+      message
+      executionArn
+    }
+  }
+`;

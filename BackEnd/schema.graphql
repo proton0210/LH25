@@ -173,6 +173,16 @@ type Mutation {
   
   rejectProperty(id: ID!, reason: String!): Property! 
     @aws_auth(cognito_groups: ["admin"])
+  
+  # Upgrade user to paid tier
+  upgradeUserToPaid(cognitoUserId: String!): UpgradeUserResponse! 
+    @aws_auth(cognito_groups: ["user", "paid", "admin"])
+}
+
+type UpgradeUserResponse {
+  success: Boolean!
+  message: String!
+  executionArn: String
 }
 
 type Subscription {

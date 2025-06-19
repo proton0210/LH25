@@ -19,17 +19,25 @@ import {
   Phone,
   Mail,
   Crown,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
+import { useState } from 'react';
+import { api } from '@/lib/api/graphql-client';
+import { PaymentModal } from '@/components/payment/payment-modal';
 
 export default function ListingsPage() {
   const { user, signOut } = useAuth();
   const { userSub, email, clearUser } = useUserStore();
   const { data: userDetails, isLoading: userLoading } = useUserDetails();
   const router = useRouter();
+  const [currentImageIndex, setCurrentImageIndex] = useState<{[key: string]: number}>({});
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Real property data
   const realProperties = [
@@ -43,7 +51,13 @@ export default function ListingsPage() {
       bedrooms: 2,
       bathrooms: 2,
       squareFeet: 1800,
-      listingType: 'For Rent'
+      listingType: 'For Rent',
+      images: [
+        'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop'
+      ]
     },
     {
       id: '2',
@@ -55,7 +69,13 @@ export default function ListingsPage() {
       bedrooms: 4,
       bathrooms: 3,
       squareFeet: 3200,
-      listingType: 'For Sale'
+      listingType: 'For Sale',
+      images: [
+        'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop'
+      ]
     },
     {
       id: '3',
@@ -67,7 +87,13 @@ export default function ListingsPage() {
       bedrooms: 3,
       bathrooms: 2,
       squareFeet: 1500,
-      listingType: 'For Rent'
+      listingType: 'For Rent',
+      images: [
+        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop'
+      ]
     },
     {
       id: '4',
@@ -79,7 +105,13 @@ export default function ListingsPage() {
       bedrooms: 3,
       bathrooms: 2.5,
       squareFeet: 2400,
-      listingType: 'For Sale'
+      listingType: 'For Sale',
+      images: [
+        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=600&fit=crop'
+      ]
     },
     {
       id: '5',
@@ -91,7 +123,13 @@ export default function ListingsPage() {
       bedrooms: 0,
       bathrooms: 1,
       squareFeet: 600,
-      listingType: 'For Rent'
+      listingType: 'For Rent',
+      images: [
+        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1540932239986-30128078f3c5?w=800&h=600&fit=crop'
+      ]
     },
     {
       id: '6',
@@ -103,7 +141,13 @@ export default function ListingsPage() {
       bedrooms: 5,
       bathrooms: 4,
       squareFeet: 4200,
-      listingType: 'For Sale'
+      listingType: 'For Sale',
+      images: [
+        'https://images.unsplash.com/photo-1601760562234-9814eea6663a?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop',
+        'https://images.unsplash.com/photo-1598228723793-52759bba239c?w=800&h=600&fit=crop'
+      ]
     }
   ];
 
@@ -115,6 +159,15 @@ export default function ListingsPage() {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const handleUpgrade = () => {
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    // Refresh the page to update user tier
+    window.location.reload();
   };
 
   return (
@@ -129,11 +182,23 @@ export default function ListingsPage() {
                   Property Listings
                 </h1>
                 {userDetails && (
-                  <div className="text-grey-700">
-                    <span className="text-sm">Welcome back,</span>
-                    <span className="text-sm font-semibold ml-1">
-                      {userDetails.firstName} {userDetails.lastName}!
-                    </span>
+                  <div className="flex items-center gap-4">
+                    <div className="text-grey-700">
+                      <span className="text-sm">Welcome back,</span>
+                      <span className="text-sm font-semibold ml-1">
+                        {userDetails.firstName} {userDetails.lastName}!
+                      </span>
+                    </div>
+                    {userDetails.tier === 'user' && (
+                      <Button
+                        onClick={handleUpgrade}
+                        className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md"
+                        size="sm"
+                      >
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Upgrade to Pro
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -184,7 +249,7 @@ export default function ListingsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {userDetails.tier === 'paid' && (
-                        <div className="flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-sm font-medium">
+                        <div className="flex items-center gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                           <Crown className="w-4 h-4" />
                           Premium
                         </div>
@@ -242,13 +307,60 @@ export default function ListingsPage() {
           {/* Property Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Real Property Cards */}
-            {realProperties.map((property, index) => (
-              <Card key={property.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer">
-                <div className="h-48 bg-gradient-to-br from-pink-100 to-purple-100 relative">
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
-                    {property.listingType}
+            {realProperties.map((property, index) => {
+              const imageIndex = currentImageIndex[property.id] || 0;
+              return (
+                <Card key={property.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+                  <div className="h-48 relative group">
+                    <img 
+                      src={property.images[imageIndex]} 
+                      alt={property.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
+                      {property.listingType}
+                    </div>
+                    
+                    {/* Image navigation */}
+                    <div className="absolute inset-0 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentImageIndex(prev => ({
+                            ...prev,
+                            [property.id]: imageIndex > 0 ? imageIndex - 1 : property.images.length - 1
+                          }));
+                        }}
+                        className="ml-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentImageIndex(prev => ({
+                            ...prev,
+                            [property.id]: imageIndex < property.images.length - 1 ? imageIndex + 1 : 0
+                          }));
+                        }}
+                        className="mr-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                    
+                    {/* Image indicators */}
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                      {property.images.map((_, idx) => (
+                        <div
+                          key={idx}
+                          className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                            idx === imageIndex ? 'bg-white' : 'bg-white/50'
+                          }`}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
                 <CardHeader>
                   <CardTitle className="text-lg line-clamp-1">{property.title}</CardTitle>
                   <CardDescription className="flex items-center gap-1">
@@ -287,7 +399,8 @@ export default function ListingsPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            );
+          })}
           </div>
 
           {/* Empty State (uncomment when no properties) */}
@@ -304,6 +417,16 @@ export default function ListingsPage() {
           </div> */}
         </main>
       </div>
+
+      {/* Payment Modal */}
+      {userSub && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          cognitoUserId={userSub}
+          onSuccess={handlePaymentSuccess}
+        />
+      )}
     </ProtectedRoute>
   );
 }
