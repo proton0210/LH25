@@ -149,6 +149,17 @@ type Query {
   
   # Get user details - users can view their own details, admins can view any user
   getUserDetails(cognitoUserId: String!): User @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  
+  # Get report generation status and signed URL
+  getReportStatus(executionArn: String!): ReportStatus! @aws_auth(cognito_groups: ["paid", "admin"])
+}
+
+type ReportStatus {
+  status: String!
+  reportId: String
+  signedUrl: String
+  s3Key: String
+  error: String
 }
 
 type Mutation {
@@ -211,6 +222,9 @@ input GenerateReportInput {
   reportType: ReportType!
   additionalContext: String
   includeDetailedAmenities: Boolean
+  
+  # User identification (optional - will use current user if not provided)
+  cognitoUserId: String
 }
 
 enum ReportType {
@@ -231,6 +245,9 @@ type PropertyReport {
   marketInsights: String
   recommendations: String
   metadata: ReportMetadata
+  signedUrl: String
+  s3Key: String
+  executionArn: String
 }
 
 type ReportMetadata {

@@ -1021,10 +1021,8 @@ export class BackEndStack extends cdk.Stack {
     // Grant Bedrock permissions
     generatePropertyReportLambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["bedrock:InvokeModel"],
-        resources: [
-          `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`
-        ],
+        actions: ["bedrock:InvokeModel", "bedrock:Converse"],
+        resources: ["*"],
       })
     );
 
@@ -1105,18 +1103,41 @@ export class BackEndStack extends cdk.Stack {
       }
     );
 
+    // Lambda for sending report ready email
+    const sendReportEmailLambda = new NodejsFunction(
+      this,
+      "SendReportEmailLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/report-generation/send-report-email/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_TABLE_NAME: userTable.tableName,
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+
     // Grant permissions
     generateAIContentLambda.addToRolePolicy(
       new iam.PolicyStatement({
-        actions: ["bedrock:InvokeModel"],
-        resources: [
-          `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`
-        ],
+        actions: ["bedrock:InvokeModel", "bedrock:Converse"],
+        resources: ["*"],
       })
     );
     
     userFilesBucket.grantWrite(savePDFToS3Lambda);
     userTable.grantReadData(savePDFToS3Lambda);
+    userTable.grantReadData(sendReportEmailLambda);
 
     // Create Step Functions tasks
     const generateAIContentTask = new tasks.LambdaInvoke(
@@ -1146,10 +1167,21 @@ export class BackEndStack extends cdk.Stack {
       }
     );
 
+    const sendReportEmailTask = new tasks.LambdaInvoke(
+      this,
+      "SendReportEmailTask",
+      {
+        lambdaFunction: sendReportEmailLambda,
+        outputPath: "$.Payload",
+        retryOnServiceExceptions: true,
+      }
+    );
+
     // Define the report generation workflow
     const reportGenerationDefinition = generateAIContentTask
       .next(generatePDFTask)
-      .next(savePDFToS3Task);
+      .next(savePDFToS3Task)
+      .next(sendReportEmailTask);
 
     const reportGenerationStateMachine = new sfn.StateMachine(
       this,
@@ -1179,6 +1211,50 @@ export class BackEndStack extends cdk.Stack {
     generatePropertyReportDataSource.createResolver("GeneratePropertyReportResolver", {
       typeName: "Mutation",
       fieldName: "generatePropertyReport",
+    });
+
+    // Create Lambda for report status checking
+    const getReportStatusLambda = new NodejsFunction(
+      this,
+      "GetReportStatusLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/get-report-status.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+        },
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    // Grant permissions
+    getReportStatusLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["states:DescribeExecution"],
+        resources: ["*"],
+      })
+    );
+    userFilesBucket.grantRead(getReportStatusLambda);
+
+    // Create data source and resolver
+    const getReportStatusDataSource = api.addLambdaDataSource(
+      "GetReportStatusDataSource",
+      getReportStatusLambda
+    );
+
+    getReportStatusDataSource.createResolver("GetReportStatusResolver", {
+      typeName: "Query",
+      fieldName: "getReportStatus",
     });
 
     // Outputs

@@ -23,6 +23,14 @@ const amplifyConfig = {
         requireNumbers: true,
         requireSpecialCharacters: true,
       },
+      // Add cookie storage for better cross-tab synchronization
+      cookieStorage: {
+        domain: typeof window !== 'undefined' ? window.location.hostname : 'localhost',
+        path: '/',
+        expires: 7, // 7 days
+        sameSite: 'lax',
+        secure: typeof window !== 'undefined' ? window.location.protocol === 'https:' : false,
+      },
     }
   },
   Storage: {

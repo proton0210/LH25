@@ -100,7 +100,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => hubListener();
+    // Handle tab visibility changes to sync auth state
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // When tab becomes visible, refresh user state
+        refreshUser();
+      }
+    };
+
+    // Handle storage events for cross-tab synchronization
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'amplify-signin-with-hostedUI' || e.key?.includes('CognitoIdentityServiceProvider')) {
+        // Auth state changed in another tab
+        refreshUser();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      hubListener();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const authSignIn = async (email: string, password: string) => {

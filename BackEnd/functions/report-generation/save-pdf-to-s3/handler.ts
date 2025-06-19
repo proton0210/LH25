@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 
@@ -24,6 +25,7 @@ export interface SavePDFToS3Input {
 export const handler = async (event: SavePDFToS3Input): Promise<SavePDFToS3Input & { 
   s3Key: string;
   s3Url: string;
+  signedUrl: string;
 }> => {
   console.log("Saving PDF to S3 for report:", event.reportId);
   
@@ -98,10 +100,23 @@ export const handler = async (event: SavePDFToS3Input): Promise<SavePDFToS3Input
     // Generate S3 URL (note: this is not a public URL, requires authentication)
     const s3Url = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
     
+    // Generate pre-signed URL valid for 1 hour
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: s3Key
+    });
+    
+    const signedUrl = await getSignedUrl(s3Client, getObjectCommand, {
+      expiresIn: 3600 // 1 hour in seconds
+    });
+    
+    console.log(`Generated pre-signed URL valid for 1 hour`);
+    
     return {
       ...event,
       s3Key,
-      s3Url
+      s3Url,
+      signedUrl
     };
     
   } catch (error) {

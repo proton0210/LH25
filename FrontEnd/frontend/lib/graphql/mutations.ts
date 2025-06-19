@@ -90,3 +90,26 @@ export const upgradeUserToPaid = /* GraphQL */ `
     }
   }
 `;
+
+export const generatePropertyReport = /* GraphQL */ `
+  mutation GeneratePropertyReport($input: GenerateReportInput!) {
+    generatePropertyReport(input: $input) {
+      reportId
+      reportType
+      generatedAt
+      content
+      propertyTitle
+      executiveSummary
+      marketInsights
+      recommendations
+      metadata {
+        modelUsed
+        generationTimeMs
+        wordCount
+      }
+      signedUrl
+      s3Key
+      executionArn
+    }
+  }
+`;

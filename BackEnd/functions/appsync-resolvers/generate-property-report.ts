@@ -1,5 +1,5 @@
 import { AppSyncResolverHandler, AppSyncIdentityCognito } from "aws-lambda";
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
 import { randomUUID } from "crypto";
 
@@ -24,6 +24,8 @@ interface GenerateReportInput {
   amenities?: string[];
   reportType: string;
   additionalContext?: string;
+  includeDetailedAmenities?: boolean;
+  cognitoUserId?: string;
 }
 
 interface PropertyReport {
@@ -40,6 +42,9 @@ interface PropertyReport {
     generationTimeMs: number;
     wordCount?: number;
   };
+  signedUrl?: string;
+  s3Key?: string;
+  executionArn?: string;
 }
 
 const generatePrompt = (input: GenerateReportInput): string => {
@@ -169,7 +174,7 @@ export const handler: AppSyncResolverHandler<{ input: GenerateReportInput }, Pro
         input: JSON.stringify({
           reportId,
           userId,
-          cognitoUserId: cognitoIdentity?.username,
+          cognitoUserId: input.cognitoUserId || cognitoIdentity?.username,
           input
         })
       });
@@ -186,10 +191,11 @@ export const handler: AppSyncResolverHandler<{ input: GenerateReportInput }, Pro
         propertyTitle: input.title,
         executiveSummary: "Report is being generated...",
         metadata: {
-          modelUsed: "amazon.nova-lite-v1:0",
+          modelUsed: "apac.anthropic.claude-3-haiku-20240307-v1:0",
           generationTimeMs: Date.now() - startTime,
           wordCount: 0
-        }
+        },
+        executionArn: sfnResponse.executionArn
       };
     }
     
@@ -197,37 +203,36 @@ export const handler: AppSyncResolverHandler<{ input: GenerateReportInput }, Pro
     // Prepare the prompt
     const prompt = generatePrompt(input);
     
-    // Prepare the request for Amazon Nova Lite
-    const modelId = "amazon.nova-lite-v1:0";
-    const bedrockInput = {
+    // Use Claude 3 Haiku model with APAC inference profile
+    const modelId = "apac.anthropic.claude-3-haiku-20240307-v1:0";
+    
+    // Create the conversation
+    const conversation = [
+      {
+        role: "user" as const,
+        content: [{ text: prompt }]
+      }
+    ];
+    
+    // Create command with the Converse API
+    const command = new ConverseCommand({
       modelId,
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify({
-        messages: [
-          {
-            role: "user",
-            content: [{ text: prompt }]
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.7,
-        top_p: 0.9
-      })
-    };
+      messages: conversation,
+      inferenceConfig: { 
+        maxTokens: 2000, 
+        temperature: 0.7, 
+        topP: 0.9 
+      }
+    });
     
     console.log("Invoking Bedrock with model:", modelId);
     
-    // Invoke Bedrock
-    const command = new InvokeModelCommand(bedrockInput);
+    // Send the command to the model
     const response = await bedrockClient.send(command);
-    
-    // Parse the response
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
     console.log("Bedrock response received");
     
     // Extract the generated content
-    const content = responseBody.content?.[0]?.text || "No content generated";
+    const content = response.output?.message?.content?.[0]?.text || "No content generated";
     const generationTimeMs = Date.now() - startTime;
     const wordCount = content.split(/\s+/).length;
     
@@ -264,7 +269,7 @@ export const handler: AppSyncResolverHandler<{ input: GenerateReportInput }, Pro
       content: "Unable to generate report at this time. Please try again later.",
       propertyTitle: input.title,
       metadata: {
-        modelUsed: "amazon.nova-lite-v1:0",
+        modelUsed: "apac.anthropic.claude-3-haiku-20240307-v1:0",
         generationTimeMs: Date.now() - startTime,
         wordCount: 0
       }

@@ -1,4 +1,4 @@
-import { BedrockRuntimeClient, InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 
 const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
 
@@ -167,34 +167,35 @@ export const handler = async (event: GenerateAIContentInput): Promise<GenerateAI
     // Generate the prompt
     const prompt = generatePrompt(event.input);
     
-    // Prepare the request for Amazon Nova Lite
-    const modelId = "amazon.nova-lite-v1:0";
-    const bedrockInput = {
+    // Use Claude 3 Haiku model with APAC inference profile
+    const modelId = "apac.anthropic.claude-3-haiku-20240307-v1:0";
+    
+    // Create the conversation
+    const conversation = [
+      {
+        role: "user" as const,
+        content: [{ text: prompt }]
+      }
+    ];
+    
+    // Create command with the Converse API
+    const command = new ConverseCommand({
       modelId,
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify({
-        messages: [
-          {
-            role: "user",
-            content: [{ text: prompt }]
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.7,
-        top_p: 0.9
-      })
-    };
+      messages: conversation,
+      inferenceConfig: { 
+        maxTokens: 2000, 
+        temperature: 0.7, 
+        topP: 0.9 
+      }
+    });
     
     console.log("Invoking Bedrock with model:", modelId);
     
-    // Invoke Bedrock
-    const command = new InvokeModelCommand(bedrockInput);
+    // Send the command to the model
     const response = await bedrockClient.send(command);
     
-    // Parse the response
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-    const content = responseBody.content?.[0]?.text || "No content generated";
+    // Extract the response text
+    const content = response.output?.message?.content?.[0]?.text || "No content generated";
     
     // Parse sections from the content
     const executiveSummary = content.match(/executive summary[:\s]*([\s\S]*?)(?=\n\n|\d\.|$)/i)?.[1]?.trim();

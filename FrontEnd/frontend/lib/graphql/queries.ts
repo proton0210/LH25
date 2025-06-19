@@ -121,3 +121,15 @@ export const getProperty = /* GraphQL */ `
     }
   }
 `;
+
+export const getReportStatus = /* GraphQL */ `
+  query GetReportStatus($executionArn: String!) {
+    getReportStatus(executionArn: $executionArn) {
+      status
+      reportId
+      signedUrl
+      s3Key
+      error
+    }
+  }
+`;

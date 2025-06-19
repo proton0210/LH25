@@ -73,6 +73,17 @@ export async function resendConfirmationCode(email: string) {
 
 export async function signIn(email: string, password: string) {
   try {
+    // Check if user is already signed in before attempting to sign in
+    try {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        // If user is already signed in, return success
+        return { isSignedIn: true, nextStep: { signInStep: 'DONE' } };
+      }
+    } catch {
+      // No current user, proceed with sign in
+    }
+
     const { isSignedIn, nextStep } = await amplifySignIn({
       username: email,
       password,
@@ -81,6 +92,11 @@ export async function signIn(email: string, password: string) {
     return { isSignedIn, nextStep };
   } catch (error) {
     console.error('Error signing in:', error);
+    // Handle the "already signed in" error specifically
+    if (error instanceof Error && error.message.includes('already a signed in user')) {
+      // Return success if user is already signed in
+      return { isSignedIn: true, nextStep: { signInStep: 'DONE' } };
+    }
     throw error;
   }
 }

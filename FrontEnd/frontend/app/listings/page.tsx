@@ -43,115 +43,229 @@ export default function ListingsPage() {
   const [selectedPropertyForAI, setSelectedPropertyForAI] = useState<any>(null);
   const [showAIInsights, setShowAIInsights] = useState(false);
 
-  // Real property data
+  // Helper function to format enum values for display
+  const formatListingType = (type: string): string => {
+    const displayMap: { [key: string]: string } = {
+      'FOR_SALE': 'For Sale',
+      'FOR_RENT': 'For Rent',
+      'SOLD': 'Sold',
+      'RENTED': 'Rented'
+    };
+    return displayMap[type] || type;
+  };
+
+  const formatPropertyType = (type: string): string => {
+    const displayMap: { [key: string]: string } = {
+      'SINGLE_FAMILY': 'Single Family',
+      'CONDO': 'Condo',
+      'TOWNHOUSE': 'Townhouse',
+      'MULTI_FAMILY': 'Multi Family',
+      'LAND': 'Land',
+      'COMMERCIAL': 'Commercial',
+      'OTHER': 'Other'
+    };
+    return displayMap[type] || type;
+  };
+
+  // Real property data with complete schema
   const realProperties = [
     {
       id: '1',
       title: 'Modern Downtown Penthouse with Skyline Views',
       description: 'Luxurious 2-bedroom penthouse featuring floor-to-ceiling windows, gourmet kitchen, and a private balcony overlooking the city skyline.',
       price: 4500,
+      address: '123 Broadway Avenue, Unit 45B',
       city: 'New York',
       state: 'NY',
+      zipCode: '10013',
       bedrooms: 2,
       bathrooms: 2,
       squareFeet: 1800,
-      listingType: 'For Rent',
+      propertyType: 'CONDO',
+      listingType: 'FOR_RENT',
       images: [
         'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop'
-      ]
+      ],
+      submittedBy: 'demo@example.com',
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'ACTIVE',
+      contactName: 'John Smith',
+      contactEmail: 'john.smith@realty.com',
+      contactPhone: '(212) 555-0123',
+      amenities: ['Gym', 'Pool', 'Concierge', 'Rooftop Terrace', 'Pet Friendly'],
+      yearBuilt: 2019,
+      lotSize: 0,
+      parkingSpaces: 1,
+      isPublic: true
     },
     {
       id: '2',
       title: 'Charming Victorian Home in Historic District',
       description: 'Beautifully restored 4-bedroom Victorian with original hardwood floors, updated kitchen, and landscaped garden in quiet neighborhood.',
       price: 875000,
+      address: '456 Oak Street',
       city: 'San Francisco',
       state: 'CA',
+      zipCode: '94102',
       bedrooms: 4,
       bathrooms: 3,
       squareFeet: 3200,
-      listingType: 'For Sale',
+      propertyType: 'SINGLE_FAMILY',
+      listingType: 'FOR_SALE',
       images: [
         'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop'
-      ]
+      ],
+      submittedBy: 'demo@example.com',
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'ACTIVE',
+      contactName: 'Sarah Johnson',
+      contactEmail: 'sarah.j@bayarearealty.com',
+      contactPhone: '(415) 555-0456',
+      amenities: ['Garden', 'Garage', 'Fireplace', 'Hardwood Floors', 'Updated Kitchen'],
+      yearBuilt: 1885,
+      lotSize: 0.25,
+      parkingSpaces: 2,
+      isPublic: true
     },
     {
       id: '3',
       title: 'Beachfront Condo with Ocean Views',
       description: 'Wake up to stunning ocean views in this 3-bedroom condo. Features include open-plan living, modern amenities, and direct beach access.',
       price: 3200,
+      address: '789 Ocean Drive, Unit 12',
       city: 'Miami',
       state: 'FL',
+      zipCode: '33139',
       bedrooms: 3,
       bathrooms: 2,
       squareFeet: 1500,
-      listingType: 'For Rent',
+      propertyType: 'CONDO',
+      listingType: 'FOR_RENT',
       images: [
         'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1502005229762-cf1b2da7c5d6?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop'
-      ]
+      ],
+      submittedBy: 'demo@example.com',
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'ACTIVE',
+      contactName: 'Mike Rodriguez',
+      contactEmail: 'mike.r@miamibeachrealty.com',
+      contactPhone: '(305) 555-0789',
+      amenities: ['Beach Access', 'Pool', 'Gym', 'Balcony', 'Security', 'Pet Friendly'],
+      yearBuilt: 2015,
+      lotSize: 0,
+      parkingSpaces: 1,
+      isPublic: true
     },
     {
       id: '4',
       title: 'Contemporary Townhouse in Tech District',
       description: 'Sleek 3-bedroom townhouse with smart home technology, rooftop deck, and garage. Walking distance to major tech companies.',
       price: 1250000,
+      address: '321 Innovation Way',
       city: 'Seattle',
       state: 'WA',
+      zipCode: '98109',
       bedrooms: 3,
       bathrooms: 2.5,
       squareFeet: 2400,
-      listingType: 'For Sale',
+      propertyType: 'TOWNHOUSE',
+      listingType: 'FOR_SALE',
       images: [
         'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1600573472550-8090b5e0745e?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&h=600&fit=crop'
-      ]
+      ],
+      submittedBy: 'demo@example.com',
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'ACTIVE',
+      contactName: 'Emily Chen',
+      contactEmail: 'emily.c@techdistrict.com',
+      contactPhone: '(206) 555-0321',
+      amenities: ['Smart Home', 'Rooftop Deck', 'EV Charger', 'Home Office', 'Security System'],
+      yearBuilt: 2021,
+      lotSize: 0.1,
+      parkingSpaces: 2,
+      isPublic: true
     },
     {
       id: '5',
       title: 'Cozy Studio in Arts District',
       description: 'Efficient studio apartment with exposed brick, high ceilings, and modern finishes. Perfect for young professionals or students.',
       price: 1800,
+      address: '654 Pearl Street, Apt 3A',
       city: 'Portland',
       state: 'OR',
+      zipCode: '97209',
       bedrooms: 0,
       bathrooms: 1,
       squareFeet: 600,
-      listingType: 'For Rent',
+      propertyType: 'CONDO',
+      listingType: 'FOR_RENT',
       images: [
         'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1540932239986-30128078f3c5?w=800&h=600&fit=crop'
-      ]
+      ],
+      submittedBy: 'demo@example.com',
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'ACTIVE',
+      contactName: 'Alex Thompson',
+      contactEmail: 'alex.t@artsdistrict.com',
+      contactPhone: '(503) 555-0654',
+      amenities: ['Exposed Brick', 'High Ceilings', 'Pet Friendly', 'Laundry', 'Bike Storage'],
+      yearBuilt: 1925,
+      lotSize: 0,
+      parkingSpaces: 0,
+      isPublic: true
     },
     {
       id: '6',
       title: 'Suburban Family Home with Pool',
       description: 'Spacious 5-bedroom home on a large lot with swimming pool, three-car garage, and excellent schools nearby.',
       price: 650000,
+      address: '987 Maple Drive',
       city: 'Austin',
       state: 'TX',
+      zipCode: '78750',
       bedrooms: 5,
       bathrooms: 4,
       squareFeet: 4200,
-      listingType: 'For Sale',
+      propertyType: 'SINGLE_FAMILY',
+      listingType: 'FOR_SALE',
       images: [
         'https://images.unsplash.com/photo-1601760562234-9814eea6663a?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1583608205776-bfd35f0d9f83?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1598228723793-52759bba239c?w=800&h=600&fit=crop'
-      ]
+      ],
+      submittedBy: 'demo@example.com',
+      submittedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      status: 'ACTIVE',
+      contactName: 'David Miller',
+      contactEmail: 'david.m@austinhomes.com',
+      contactPhone: '(512) 555-0987',
+      amenities: ['Pool', 'Three-Car Garage', 'Game Room', 'Home Theater', 'Outdoor Kitchen'],
+      yearBuilt: 2018,
+      lotSize: 0.5,
+      parkingSpaces: 3,
+      isPublic: true
     }
   ];
 
@@ -375,7 +489,7 @@ export default function ListingsPage() {
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
-                      {property.listingType}
+                      {formatListingType(property.listingType)}
                     </div>
                     
                     {/* Image navigation */}
