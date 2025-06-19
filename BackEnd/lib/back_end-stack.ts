@@ -989,6 +989,198 @@ export class BackEndStack extends cdk.Stack {
       fieldName: "upgradeUserToPaid",
     });
 
+    // =====================================================
+    // AI PROPERTY REPORT GENERATION
+    // =====================================================
+
+    // Create Lambda for property report generation
+    const generatePropertyReportLambda = new NodejsFunction(
+      this,
+      "GeneratePropertyReportLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/generate-property-report.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {},
+        timeout: cdk.Duration.seconds(60), // Longer timeout for AI generation
+        memorySize: 1024, // More memory for AI processing
+      }
+    );
+
+    // Grant permissions
+    
+    // Grant Bedrock permissions
+    generatePropertyReportLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["bedrock:InvokeModel"],
+        resources: [
+          `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`
+        ],
+      })
+    );
+
+    // =====================================================
+    // REPORT GENERATION WORKFLOW (STEP FUNCTIONS)
+    // =====================================================
+
+    // Lambda for AI content generation
+    const generateAIContentLambda = new NodejsFunction(
+      this,
+      "GenerateAIContentLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/report-generation/generate-ai-content/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {},
+        timeout: cdk.Duration.seconds(60),
+        memorySize: 1024,
+      }
+    );
+
+    // Lambda for PDF generation
+    const generatePDFLambda = new NodejsFunction(
+      this,
+      "GeneratePDFLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/report-generation/generate-pdf/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+          externalModules: [],
+          nodeModules: ["pdfkit"],
+        },
+        environment: {},
+        timeout: cdk.Duration.seconds(30),
+        memorySize: 512,
+      }
+    );
+
+    // Lambda for saving PDF to S3
+    const savePDFToS3Lambda = new NodejsFunction(
+      this,
+      "SavePDFToS3Lambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/report-generation/save-pdf-to-s3/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+          USER_TABLE_NAME: userTable.tableName,
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+
+    // Grant permissions
+    generateAIContentLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["bedrock:InvokeModel"],
+        resources: [
+          `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`
+        ],
+      })
+    );
+    
+    userFilesBucket.grantWrite(savePDFToS3Lambda);
+    userTable.grantReadData(savePDFToS3Lambda);
+
+    // Create Step Functions tasks
+    const generateAIContentTask = new tasks.LambdaInvoke(
+      this,
+      "GenerateAIContentTask",
+      {
+        lambdaFunction: generateAIContentLambda,
+        outputPath: "$.Payload",
+      }
+    );
+
+    const generatePDFTask = new tasks.LambdaInvoke(
+      this,
+      "GeneratePDFTask",
+      {
+        lambdaFunction: generatePDFLambda,
+        outputPath: "$.Payload",
+      }
+    );
+
+    const savePDFToS3Task = new tasks.LambdaInvoke(
+      this,
+      "SavePDFToS3Task",
+      {
+        lambdaFunction: savePDFToS3Lambda,
+        outputPath: "$.Payload",
+      }
+    );
+
+    // Define the report generation workflow
+    const reportGenerationDefinition = generateAIContentTask
+      .next(generatePDFTask)
+      .next(savePDFToS3Task);
+
+    const reportGenerationStateMachine = new sfn.StateMachine(
+      this,
+      "ReportGenerationStateMachine",
+      {
+        stateMachineName: "property-report-generation-workflow",
+        definition: reportGenerationDefinition,
+        timeout: cdk.Duration.minutes(5),
+      }
+    );
+
+    // Grant Step Functions permission to the AppSync resolver
+    reportGenerationStateMachine.grantStartExecution(generatePropertyReportLambda);
+    
+    // Add state machine ARN to the resolver Lambda environment
+    generatePropertyReportLambda.addEnvironment(
+      "REPORT_GENERATION_STATE_MACHINE_ARN",
+      reportGenerationStateMachine.stateMachineArn
+    );
+
+    // Create data source and resolver
+    const generatePropertyReportDataSource = api.addLambdaDataSource(
+      "GeneratePropertyReportDataSource",
+      generatePropertyReportLambda
+    );
+
+    generatePropertyReportDataSource.createResolver("GeneratePropertyReportResolver", {
+      typeName: "Mutation",
+      fieldName: "generatePropertyReport",
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "UserPoolId", {
       value: userPool.userPoolId,
@@ -1071,6 +1263,11 @@ export class BackEndStack extends cdk.Stack {
     new cdk.CfnOutput(this, "GraphQLApiId", {
       value: api.apiId,
       description: "The ID of the GraphQL API",
+    });
+
+    new cdk.CfnOutput(this, "ReportGenerationStateMachineArn", {
+      value: reportGenerationStateMachine.stateMachineArn,
+      description: "The ARN of the Report Generation Step Functions state machine",
     });
   }
 }

@@ -177,12 +177,66 @@ type Mutation {
   # Upgrade user to paid tier
   upgradeUserToPaid(cognitoUserId: String!): UpgradeUserResponse! 
     @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  
+  # Generate AI property report (Pro users only)
+  generatePropertyReport(input: GenerateReportInput!): PropertyReport! 
+    @aws_auth(cognito_groups: ["paid", "admin"])
 }
 
 type UpgradeUserResponse {
   success: Boolean!
   message: String!
   executionArn: String
+}
+
+input GenerateReportInput {
+  # Property details
+  title: String!
+  description: String!
+  price: Float!
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  bedrooms: Int!
+  bathrooms: Float!
+  squareFeet: Int!
+  propertyType: PropertyType!
+  listingType: ListingType!
+  yearBuilt: Int
+  lotSize: Float
+  amenities: [String!]
+  
+  # Report customization
+  reportType: ReportType!
+  additionalContext: String
+  includeDetailedAmenities: Boolean
+}
+
+enum ReportType {
+  MARKET_ANALYSIS
+  INVESTMENT_ANALYSIS
+  COMPARATIVE_MARKET_ANALYSIS
+  LISTING_OPTIMIZATION
+  CUSTOM
+}
+
+type PropertyReport {
+  reportId: ID!
+  reportType: ReportType!
+  generatedAt: AWSDateTime!
+  content: String!
+  propertyTitle: String!
+  executiveSummary: String
+  marketInsights: String
+  recommendations: String
+  metadata: ReportMetadata
+}
+
+type ReportMetadata {
+  modelUsed: String!
+  generationTimeMs: Int!
+  wordCount: Int
 }
 
 type Subscription {

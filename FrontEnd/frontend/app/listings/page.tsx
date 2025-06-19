@@ -21,7 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  Brain
+  Brain,
+  FileText
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -206,22 +207,53 @@ export default function ListingsPage() {
                 )}
               </div>
               <div className="flex items-center gap-4">
+                {userDetails?.tier !== 'admin' && (
+                  userDetails?.tier === 'paid' ? (
+                    <Link href="/my-reports">
+                      <Button 
+                        variant="outline" 
+                        className="border-purple-200 hover:bg-purple-50 hover:border-purple-300 text-purple-700 transition-all duration-200 hover:shadow-sm"
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        My Reports
+                      </Button>
+                    </Link>
+                  ) : (
+                    <div className="relative group">
+                      <Button 
+                        variant="outline" 
+                        className="border-grey-200 text-grey-400 cursor-not-allowed opacity-60"
+                        disabled
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        My Reports
+                      </Button>
+                      <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 px-3 py-2 bg-grey-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-3 h-3 text-amber-400" />
+                          Pro feature - Upgrade to access
+                        </div>
+                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-grey-900 rotate-45"></div>
+                      </div>
+                    </div>
+                  )
+                )}
                 {userDetails?.tier === 'admin' ? (
                   <Link href="/admin">
-                    <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white">
+                    <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white transition-all duration-200 hover:shadow-lg">
                       To Admin Page
                     </Button>
                   </Link>
                 ) : (
                   <>
                     <Link href="/my-listings">
-                      <Button variant="outline" className="border-pink-200 hover:bg-pink-50 text-pink-700">
+                      <Button variant="outline" className="border-pink-200 hover:bg-pink-50 hover:border-pink-300 text-pink-700 transition-all duration-200 hover:shadow-sm">
                         <Home className="w-4 h-4 mr-2" />
                         My Listings
                       </Button>
                     </Link>
                     <Link href="/list-property">
-                      <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white">
+                      <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white transition-all duration-200 hover:shadow-lg">
                         <Plus className="w-4 h-4 mr-2" />
                         List Property
                       </Button>
@@ -231,7 +263,7 @@ export default function ListingsPage() {
                 <Button 
                   variant="outline" 
                   onClick={handleSignOut}
-                  className="border-grey-200 hover:bg-grey-50"
+                  className="border-grey-200 hover:bg-grey-50 hover:border-grey-300 transition-all duration-200 hover:shadow-sm"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
