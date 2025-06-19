@@ -212,7 +212,7 @@ export default function ListingsPage() {
                     <Link href="/my-reports">
                       <Button 
                         variant="outline" 
-                        className="border-purple-200 hover:bg-purple-50 hover:border-purple-300 text-purple-700 transition-all duration-200 hover:shadow-sm"
+                        className="border-purple-200 text-purple-700 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
                       >
                         <FileText className="w-4 h-4 mr-2" />
                         My Reports
@@ -240,20 +240,20 @@ export default function ListingsPage() {
                 )}
                 {userDetails?.tier === 'admin' ? (
                   <Link href="/admin">
-                    <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white transition-all duration-200 hover:shadow-lg">
+                    <Button className="bg-gradient-to-r from-pink-600 to-purple-600 text-white transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
                       To Admin Page
                     </Button>
                   </Link>
                 ) : (
                   <>
                     <Link href="/my-listings">
-                      <Button variant="outline" className="border-pink-200 hover:bg-pink-50 hover:border-pink-300 text-pink-700 transition-all duration-200 hover:shadow-sm">
+                      <Button variant="outline" className="border-pink-200 text-pink-700 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
                         <Home className="w-4 h-4 mr-2" />
                         My Listings
                       </Button>
                     </Link>
                     <Link href="/list-property">
-                      <Button className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 text-white transition-all duration-200 hover:shadow-lg">
+                      <Button className="bg-gradient-to-r from-pink-600 to-purple-600 text-white transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
                         <Plus className="w-4 h-4 mr-2" />
                         List Property
                       </Button>
@@ -263,7 +263,7 @@ export default function ListingsPage() {
                 <Button 
                   variant="outline" 
                   onClick={handleSignOut}
-                  className="border-grey-200 hover:bg-grey-50 hover:border-grey-300 transition-all duration-200 hover:shadow-sm"
+                  className="border-grey-200 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
