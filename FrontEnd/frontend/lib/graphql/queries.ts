@@ -133,3 +133,21 @@ export const getReportStatus = /* GraphQL */ `
     }
   }
 `;
+
+export const listMyReports = /* GraphQL */ `
+  query ListMyReports($limit: Int, $nextToken: String) {
+    listMyReports(limit: $limit, nextToken: $nextToken) {
+      items {
+        reportId
+        fileName
+        reportType
+        propertyTitle
+        createdAt
+        size
+        signedUrl
+        s3Key
+      }
+      nextToken
+    }
+  }
+`;

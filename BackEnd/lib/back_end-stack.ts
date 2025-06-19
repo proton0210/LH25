@@ -1257,6 +1257,46 @@ export class BackEndStack extends cdk.Stack {
       fieldName: "getReportStatus",
     });
 
+    // Create Lambda for listing user reports
+    const listMyReportsLambda = new NodejsFunction(
+      this,
+      "ListMyReportsLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/list-my-reports.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+          USER_TABLE_NAME: userTable.tableName,
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+
+    // Grant permissions
+    userFilesBucket.grantRead(listMyReportsLambda);
+    userTable.grantReadData(listMyReportsLambda);
+
+    // Create data source and resolver
+    const listMyReportsDataSource = api.addLambdaDataSource(
+      "ListMyReportsDataSource",
+      listMyReportsLambda
+    );
+
+    listMyReportsDataSource.createResolver("ListMyReportsResolver", {
+      typeName: "Query",
+      fieldName: "listMyReports",
+    });
+
     // Outputs
     new cdk.CfnOutput(this, "UserPoolId", {
       value: userPool.userPoolId,

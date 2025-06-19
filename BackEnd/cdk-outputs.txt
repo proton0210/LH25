@@ -1,5 +1,5 @@
 # CDK Stack Outputs
-# Generated on: 2025-06-19T17:05:50.205Z
+# Generated on: 2025-06-19T18:24:35.823Z
 
 AdminGroupName=admin
 GraphQLApiId=iivw24s5xffwjbtrkke2qfnlaq

@@ -152,6 +152,25 @@ type Query {
   
   # Get report generation status and signed URL
   getReportStatus(executionArn: String!): ReportStatus! @aws_auth(cognito_groups: ["paid", "admin"])
+  
+  # Get all reports for the current user
+  listMyReports(limit: Int, nextToken: String): ReportConnection! @aws_auth(cognito_groups: ["paid", "admin"])
+}
+
+type ReportConnection {
+  items: [UserReport!]!
+  nextToken: String
+}
+
+type UserReport {
+  reportId: String!
+  fileName: String!
+  reportType: String!
+  propertyTitle: String!
+  createdAt: AWSDateTime!
+  size: Int!
+  signedUrl: String!
+  s3Key: String!
 }
 
 type ReportStatus {

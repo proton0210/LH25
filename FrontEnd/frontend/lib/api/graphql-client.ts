@@ -266,4 +266,36 @@ export const api = {
       throw error;
     }
   },
+
+  async listMyReports(variables?: {
+    limit?: number;
+    nextToken?: string;
+  }): Promise<{
+    items: Array<{
+      reportId: string;
+      fileName: string;
+      reportType: string;
+      propertyTitle: string;
+      createdAt: string;
+      size: number;
+      signedUrl: string;
+      s3Key: string;
+    }>;
+    nextToken: string | null;
+  }> {
+    try {
+      const result = await client.graphql({
+        query: queries.listMyReports,
+        variables,
+        authMode: 'userPool',
+      });
+      if ("data" in result) {
+        return result.data.listMyReports;
+      }
+      throw new Error("Unexpected GraphQL result type");
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      throw error;
+    }
+  },
 };

@@ -323,7 +323,7 @@ export default function ListingsPage() {
               <div className="flex items-center gap-4">
                 {userDetails?.tier !== 'admin' && (
                   userDetails?.tier === 'paid' ? (
-                    <Link href="/my-reports">
+                    <Link href="/reports">
                       <Button 
                         variant="outline" 
                         className="border-purple-200 text-purple-700 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
