@@ -1,6 +1,7 @@
 {
   "BackEndStack": {
     "GraphQLApiId": "iivw24s5xffwjbtrkke2qfnlaq",
+    "PropertyUploadStateMachineArn": "arn:aws:states:ap-south-1:585768150182:stateMachine:property-upload-workflow",
     "UpgradeUserStateMachineArn": "arn:aws:states:ap-south-1:585768150182:stateMachine:upgrade-user-to-paid-workflow",
     "UserTableName": "lh-users",
     "UserFilesBucketName": "lh-user-files-585768150182-ap-south-1",

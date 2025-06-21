@@ -521,7 +521,8 @@ export class BackEndStack extends cdk.Stack {
         environment: {
           USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(60), // Increased timeout for downloading images
+        memorySize: 512, // Increased memory for image processing
       }
     );
 
@@ -584,11 +585,6 @@ export class BackEndStack extends cdk.Stack {
       {
         lambdaFunction: validatePropertyDataLambda,
         outputPath: "$.Payload",
-        resultSelector: {
-          "isValid.$": "$.isValid",
-          "errors.$": "$.errors",
-          "propertyData.$": "$.propertyData",
-        },
       }
     );
 
@@ -599,13 +595,6 @@ export class BackEndStack extends cdk.Stack {
         lambdaFunction: uploadImagesToS3Lambda,
         inputPath: "$",
         outputPath: "$.Payload",
-        resultSelector: {
-          "success.$": "$.success",
-          "propertyId.$": "$.propertyId",
-          "uploadedImages.$": "$.uploadedImages",
-          "propertyData.$": "$.propertyData",
-          "error.$": "$.error",
-        },
       }
     );
 
@@ -615,11 +604,6 @@ export class BackEndStack extends cdk.Stack {
       {
         lambdaFunction: savePropertyToDynamoDBLambda,
         outputPath: "$.Payload",
-        resultSelector: {
-          "success.$": "$.success",
-          "property.$": "$.property",
-          "error.$": "$.error",
-        },
       }
     );
 
@@ -701,7 +685,10 @@ export class BackEndStack extends cdk.Stack {
         sourcesContent: false,
         target: "node20",
       },
-      environment: resolverEnvironment,
+      environment: {
+        ...resolverEnvironment,
+        USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+      },
       timeout: cdk.Duration.seconds(10),
     });
 
@@ -787,8 +774,11 @@ export class BackEndStack extends cdk.Stack {
           sourcesContent: false,
           target: "node20",
         },
-        environment: resolverEnvironment,
-        timeout: cdk.Duration.seconds(10),
+        environment: {
+          ...resolverEnvironment,
+          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+        },
+        timeout: cdk.Duration.seconds(30), // Increased for S3 operations
       }
     );
 
@@ -902,11 +892,37 @@ export class BackEndStack extends cdk.Stack {
       }
     );
 
+    // List Pending Properties Lambda (Admin only)
+    const listPendingPropertiesLambda = new NodejsFunction(
+      this,
+      "ListPendingPropertiesLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/appsync-resolvers/list-pending-properties.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          ...resolverEnvironment,
+          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+
     // Grant permissions
     propertiesTable.grantReadWriteData(createPropertyLambda);
     propertiesTable.grantReadData(getPropertyLambda);
     propertiesTable.grantReadData(listPropertiesLambda);
     propertiesTable.grantReadData(listMyPropertiesLambda);
+    propertiesTable.grantReadData(listPendingPropertiesLambda);
     propertiesTable.grantReadWriteData(updatePropertyLambda);
     propertiesTable.grantReadWriteData(deletePropertyLambda);
     propertiesTable.grantReadWriteData(approvePropertyLambda);
@@ -915,9 +931,15 @@ export class BackEndStack extends cdk.Stack {
     // Grant user table permissions
     userTable.grantReadData(getUserDetailsLambda);
     userTable.grantReadData(createPropertyLambda);
+    userTable.grantReadData(listMyPropertiesLambda);
+    userTable.grantReadData(listPendingPropertiesLambda);
+    userTable.grantReadData(approvePropertyLambda);
+    userTable.grantReadData(rejectPropertyLambda);
 
     // Grant S3 permissions
-    propertyImagesBucket.grantPut(getUploadUrlLambda);
+    userFilesBucket.grantPut(getUploadUrlLambda);
+    userFilesBucket.grantRead(listMyPropertiesLambda);
+    userFilesBucket.grantRead(listPendingPropertiesLambda);
     propertyImagesBucket.grantDelete(deletePropertyLambda);
 
     // Create Data Sources
@@ -944,6 +966,11 @@ export class BackEndStack extends cdk.Stack {
     const listMyPropertiesDataSource = api.addLambdaDataSource(
       "ListMyPropertiesDataSource",
       listMyPropertiesLambda
+    );
+
+    const listPendingPropertiesDataSource = api.addLambdaDataSource(
+      "ListPendingPropertiesDataSource",
+      listPendingPropertiesLambda
     );
 
     const updatePropertyDataSource = api.addLambdaDataSource(
@@ -991,6 +1018,11 @@ export class BackEndStack extends cdk.Stack {
     listMyPropertiesDataSource.createResolver("ListMyPropertiesResolver", {
       typeName: "Query",
       fieldName: "listMyProperties",
+    });
+
+    listPendingPropertiesDataSource.createResolver("ListPendingPropertiesResolver", {
+      typeName: "Query",
+      fieldName: "listPendingProperties",
     });
 
     // Mutations

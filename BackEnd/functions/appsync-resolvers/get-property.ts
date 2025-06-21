@@ -1,4 +1,4 @@
-import { AppSyncResolverHandler } from 'aws-lambda';
+import { AppSyncResolverHandler, AppSyncIdentityCognito, AppSyncIdentityIAM } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 
@@ -62,7 +62,7 @@ export const handler: AppSyncResolverHandler<{ id: string }, Property | null> = 
     const { pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, gsi3pk, gsi3sk, gsi4pk, gsi4sk, gsi5pk, gsi5sk, ...property } = result.Item;
 
     // Check if property is public or user has access
-    const identity = event.identity;
+    const identity = event.identity as AppSyncIdentityCognito | AppSyncIdentityIAM | null | undefined;
     const isAuthenticated = identity && ('username' in identity || 'userArn' in identity);
     
     // If property is not public and not active, only show to authenticated users who own it or admins
@@ -72,8 +72,19 @@ export const handler: AppSyncResolverHandler<{ id: string }, Property | null> = 
       }
       
       // Check if user owns the property or is admin
-      const username = 'username' in identity ? identity.username : identity.userArn;
-      const isAdmin = identity.groups && identity.groups.includes('admin');
+      let username: string | undefined;
+      let isAdmin = false;
+      
+      if (identity && 'username' in identity) {
+        // Cognito user
+        const cognitoIdentity = identity as AppSyncIdentityCognito;
+        username = cognitoIdentity.username;
+        isAdmin = cognitoIdentity.groups ? cognitoIdentity.groups.includes('admin') : false;
+      } else if (identity && 'userArn' in identity) {
+        // IAM user
+        const iamIdentity = identity as AppSyncIdentityIAM;
+        username = iamIdentity.userArn;
+      }
       
       if (property.submittedBy !== username && !isAdmin) {
         return null; // User doesn't have access to this property

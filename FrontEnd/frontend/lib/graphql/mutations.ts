@@ -1,32 +1,9 @@
 export const createProperty = /* GraphQL */ `
   mutation CreateProperty($input: CreatePropertyInput!) {
     createProperty(input: $input) {
-      id
-      title
-      description
-      price
-      address
-      city
-      state
-      zipCode
-      bedrooms
-      bathrooms
-      squareFeet
-      propertyType
-      listingType
-      images
-      submittedBy
-      submittedAt
-      updatedAt
-      status
-      contactName
-      contactEmail
-      contactPhone
-      amenities
-      yearBuilt
-      lotSize
-      parkingSpaces
-      isPublic
+      executionArn
+      startDate
+      message
     }
   }
 `;
@@ -110,6 +87,28 @@ export const generatePropertyReport = /* GraphQL */ `
       signedUrl
       s3Key
       executionArn
+    }
+  }
+`;
+
+export const approveProperty = /* GraphQL */ `
+  mutation ApproveProperty($id: ID!) {
+    approveProperty(id: $id) {
+      id
+      title
+      status
+      updatedAt
+    }
+  }
+`;
+
+export const rejectProperty = /* GraphQL */ `
+  mutation RejectProperty($id: ID!, $reason: String!) {
+    rejectProperty(id: $id, reason: $reason) {
+      id
+      title
+      status
+      updatedAt
     }
   }
 `;

@@ -14,8 +14,8 @@ export const getUserDetails = /* GraphQL */ `
 `;
 
 export const listMyProperties = /* GraphQL */ `
-  query ListMyProperties($limit: Int, $nextToken: String) {
-    listMyProperties(limit: $limit, nextToken: $nextToken) {
+  query ListMyProperties($userId: String!, $limit: Int, $nextToken: String) {
+    listMyProperties(userId: $userId, limit: $limit, nextToken: $nextToken) {
       items {
         id
         title
@@ -146,6 +146,36 @@ export const listMyReports = /* GraphQL */ `
         size
         signedUrl
         s3Key
+      }
+      nextToken
+    }
+  }
+`;
+
+export const listPendingProperties = /* GraphQL */ `
+  query ListPendingProperties($limit: Int, $nextToken: String) {
+    listPendingProperties(limit: $limit, nextToken: $nextToken) {
+      items {
+        id
+        title
+        description
+        price
+        address
+        city
+        state
+        zipCode
+        bedrooms
+        bathrooms
+        squareFeet
+        propertyType
+        listingType
+        images
+        status
+        submittedAt
+        submittedBy
+        contactName
+        contactEmail
+        contactPhone
       }
       nextToken
     }

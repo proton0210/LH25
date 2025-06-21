@@ -11,8 +11,7 @@ const TABLE_NAME = process.env.PROPERTIES_TABLE_NAME!;
 const USER_FILES_BUCKET = process.env.USER_FILES_BUCKET_NAME!;
 const USER_TABLE_NAME = process.env.USER_TABLE_NAME!;
 
-interface ListMyPropertiesArgs {
-  userId: string;
+interface ListPendingPropertiesArgs {
   limit?: number;
   nextToken?: string;
 }
@@ -51,7 +50,7 @@ interface PropertyConnection {
   nextToken?: string;
 }
 
-async function generateSignedUrlsForImages(images: string[], userId?: string): Promise<string[]> {
+async function generateSignedUrlsForImages(images: string[]): Promise<string[]> {
   const signedUrls: string[] = [];
   
   for (const image of images) {
@@ -81,39 +80,29 @@ async function generateSignedUrlsForImages(images: string[], userId?: string): P
   return signedUrls;
 }
 
-export const handler: AppSyncResolverHandler<ListMyPropertiesArgs, PropertyConnection> = async (event) => {
-  console.log('ListMyProperties event:', JSON.stringify(event, null, 2));
+export const handler: AppSyncResolverHandler<ListPendingPropertiesArgs, PropertyConnection> = async (event) => {
+  console.log('ListPendingProperties event:', JSON.stringify(event, null, 2));
 
-  const { userId, limit = 20, nextToken } = event.arguments;
+  const { limit = 20, nextToken } = event.arguments;
   const identity = event.identity as AppSyncIdentityCognito;
   const maxLimit = Math.min(limit, 100); // Cap at 100 items
 
-  if (!userId) {
-    throw new Error('userId is required');
+  // Verify admin access
+  const isAdmin = identity?.groups && identity.groups.includes('admin');
+  if (!isAdmin) {
+    throw new Error('Only administrators can list pending properties');
   }
 
   try {
-    // First, query the Users table with userId as partition key to get the cognitoUserId
-    const getUserCommand = new QueryCommand({
-      TableName: USER_TABLE_NAME,
-      KeyConditionExpression: "userId = :userId",
-      ExpressionAttributeValues: {
-        ":userId": userId
-      },
-      Limit: 1
-    });
-    
-    const userResult = await docClient.send(getUserCommand);
-    
-    if (!userResult.Items || userResult.Items.length === 0) {
-      throw new Error('User not found');
-    }
-    
-    const user = userResult.Items[0];
-    const cognitoUserId = user.cognitoUserId;
-
-    let queryParams: any = {
+    // Query properties with PENDING_REVIEW status using GSI1
+    const queryParams: any = {
       TableName: TABLE_NAME,
+      IndexName: 'gsi1',
+      KeyConditionExpression: 'gsi1pk = :pk',
+      ExpressionAttributeValues: {
+        ':pk': 'STATUS#PENDING_REVIEW',
+      },
+      ScanIndexForward: false, // Most recent first
       Limit: maxLimit,
     };
 
@@ -122,25 +111,44 @@ export const handler: AppSyncResolverHandler<ListMyPropertiesArgs, PropertyConne
       queryParams.ExclusiveStartKey = JSON.parse(Buffer.from(nextToken, 'base64').toString());
     }
 
-    // Query properties for this specific user using GSI5
-    queryParams.IndexName = 'gsi5';
-    queryParams.KeyConditionExpression = 'gsi5pk = :pk';
-    queryParams.ExpressionAttributeValues = {
-      ':pk': `USER#${cognitoUserId}`, // Use cognitoUserId to query properties
-    };
-    queryParams.ScanIndexForward = false; // Most recent first
-
     // Execute query
     const result = await docClient.send(new QueryCommand(queryParams));
 
-    // Clean up items and generate signed URLs for images
+    // Process items to include additional user information
     const items = await Promise.all(
       (result.Items || []).map(async (item) => {
         const { pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, gsi3pk, gsi3sk, gsi4pk, gsi4sk, gsi5pk, gsi5sk, ...property } = item;
         
         // Generate signed URLs for images
         if (property.images && Array.isArray(property.images)) {
-          property.images = await generateSignedUrlsForImages(property.images, userId);
+          property.images = await generateSignedUrlsForImages(property.images);
+        }
+        
+        // Optionally fetch submitter user details
+        if (property.submittedBy) {
+          try {
+            const userQueryCommand = new QueryCommand({
+              TableName: USER_TABLE_NAME,
+              IndexName: "cognitoUserId",
+              KeyConditionExpression: "cognitoUserId = :cognitoUserId",
+              ExpressionAttributeValues: {
+                ":cognitoUserId": property.submittedBy
+              },
+              Limit: 1
+            });
+            
+            const userQueryResult = await docClient.send(userQueryCommand);
+            
+            if (userQueryResult.Items && userQueryResult.Items.length > 0) {
+              const user = userQueryResult.Items[0];
+              // Add submitter details to property
+              property.submitterName = `${user.firstName} ${user.lastName}`;
+              property.submitterEmail = user.email;
+            }
+          } catch (error) {
+            console.error('Error fetching user details:', error);
+            // Continue without user details
+          }
         }
         
         return property as Property;
@@ -157,9 +165,10 @@ export const handler: AppSyncResolverHandler<ListMyPropertiesArgs, PropertyConne
       response.nextToken = Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64');
     }
 
+    console.log(`Returning ${items.length} pending properties`);
     return response;
   } catch (error) {
-    console.error('Error listing my properties:', error);
-    throw new Error('Failed to list properties');
+    console.error('Error listing pending properties:', error);
+    throw new Error('Failed to list pending properties');
   }
 };

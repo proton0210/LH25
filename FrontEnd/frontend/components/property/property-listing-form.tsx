@@ -36,6 +36,18 @@ import {
 import { propertySchema, propertyTypes, states, type PropertyFormData } from '@/lib/validations/property';
 import { uploadFile, generateFileKey } from '@/lib/storage';
 import { useAuth } from '@/hooks/useAuth';
+import { api, PropertyType, ListingType } from '@/lib/api/graphql-client';
+
+// Add animation delays for the bouncing dots
+const animationStyles = `
+  @keyframes customBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-0.5rem); }
+  }
+  .animation-delay-0 { animation: customBounce 1.5s infinite; animation-delay: 0ms; }
+  .animation-delay-200 { animation: customBounce 1.5s infinite; animation-delay: 200ms; }
+  .animation-delay-400 { animation: customBounce 1.5s infinite; animation-delay: 400ms; }
+`;
 
 export function PropertyListingForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +55,7 @@ export function PropertyListingForm() {
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [showSampleHint, setShowSampleHint] = useState(true);
 
   const router = useRouter();
   const { user } = useAuth();
@@ -333,6 +346,8 @@ export function PropertyListingForm() {
     
     // Clear any errors
     setError(null);
+    // Hide the sample hint after filling
+    setShowSampleHint(false);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -409,19 +424,56 @@ export function PropertyListingForm() {
         }
       }
 
-      // Here you would submit the property data to your API
-      const propertyData = {
-        ...data,
-        images: imageUrls,
-        userId: user.userId,
+      // Map property type from form to GraphQL enum
+      const mapPropertyType = (type: string): PropertyType => {
+        const typeMap: Record<string, PropertyType> = {
+          'House': PropertyType.SINGLE_FAMILY,
+          'Apartment': PropertyType.CONDO,
+          'Condo': PropertyType.CONDO,
+          'Townhouse': PropertyType.TOWNHOUSE,
+          'Villa': PropertyType.SINGLE_FAMILY,
+          'Studio': PropertyType.CONDO,
+          'Duplex': PropertyType.MULTI_FAMILY,
+          'Penthouse': PropertyType.CONDO,
+          'Land': PropertyType.LAND,
+          'Commercial': PropertyType.COMMERCIAL,
+        };
+        return typeMap[type] || PropertyType.OTHER;
       };
 
-      console.log('Property data to submit:', propertyData);
-      
-      // TODO: Call your API to save the property
-      // await createProperty(propertyData);
+      // Prepare property data for API
+      const propertyInput = {
+        title: data.title,
+        description: data.description,
+        price: data.price,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        bedrooms: data.bedrooms || 0,
+        bathrooms: data.bathrooms || 0,
+        squareFeet: data.area || 0, // Map area to squareFeet
+        propertyType: mapPropertyType(data.propertyType),
+        listingType: ListingType.FOR_SALE, // Default to FOR_SALE, you can add this to form if needed
+        images: imageUrls,
+        contactName: data.contactName,
+        contactEmail: data.contactEmail,
+        contactPhone: data.contactPhone,
+        amenities: [], // Add amenities field to form if needed
+      };
 
-      router.push('/dashboard/properties');
+      console.log('Submitting property:', propertyInput);
+      
+      // Call API to create property - this now returns PropertyUploadResponse
+      const response = await api.createProperty(propertyInput);
+      
+      console.log('Property upload initiated:', response);
+      
+      // Store the execution ARN for status tracking
+      sessionStorage.setItem('propertyUploadArn', response.executionArn);
+      
+      // Redirect to a status page or listings with a success message
+      router.push(`/listings?uploadStatus=initiated&executionArn=${response.executionArn}`);
     } catch (err) {
       console.error('Error creating property:', err);
       setError(err instanceof Error ? err.message : 'Failed to create property listing');
@@ -432,7 +484,9 @@ export function PropertyListingForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-grey-50 to-white py-12">
+    <>
+      <style jsx>{animationStyles}</style>
+      <div className="min-h-screen bg-gradient-to-b from-grey-50 to-white py-12">
       <div className="container mx-auto px-6">
         {/* Back Button */}
         <div className="max-w-4xl mx-auto mb-4">
@@ -450,22 +504,62 @@ export function PropertyListingForm() {
           <div className="bg-gradient-to-r from-pink-500/20 to-purple-500/20 p-[1px]">
             <div className="bg-background">
               <CardHeader className="pb-8">
-                <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                  List Your Property
-                </CardTitle>
+                <div className="relative">
+                  <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+                    List Your Property
+                  </CardTitle>
+                  <div className="absolute -top-2 -right-2 animate-pulse">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-blue-400 rounded-full blur-lg opacity-75"></div>
+                      <div className="relative bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                        NEW: Auto-Fill Available!
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <CardDescription className="text-center text-grey-600">
                   Reach thousands of verified buyers with zero brokerage
                 </CardDescription>
-                <div className="flex justify-center mt-4">
+                <div className="flex justify-center mt-6">
                   <button
                     type="button"
                     onClick={fillSampleData}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full text-sm font-medium transition-colors"
+                    className="relative inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full text-base font-semibold transition-all duration-200 transform hover:scale-105 hover:shadow-lg group"
                   >
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-                    Fill Sample Data
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full blur opacity-30 group-hover:opacity-50 transition duration-200" />
+                    <div className="relative flex items-center gap-3">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-white rounded-full animate-bounce animation-delay-0" />
+                        <div className="w-2 h-2 bg-white rounded-full animate-bounce animation-delay-200" />
+                        <div className="w-2 h-2 bg-white rounded-full animate-bounce animation-delay-400" />
+                      </div>
+                      <span>Fill Sample Data</span>
+                      <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                      </svg>
+                    </div>
                   </button>
                 </div>
+                <p className="text-center text-sm text-grey-500 mt-3">
+                  <span className="inline-flex items-center gap-1.5">
+                    <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Try our form with pre-filled professional property listings
+                  </span>
+                </p>
+                
+                {/* Floating hint for first-time users */}
+                {showSampleHint && form.formState.isSubmitted === false && (
+                  <div className="absolute -bottom-20 left-1/2 -translate-x-1/2 animate-bounce">
+                    <div className="relative">
+                      <div className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm font-medium whitespace-nowrap">
+                        👆 Click here to auto-fill the form!
+                      </div>
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[6px] border-transparent border-b-blue-600"></div>
+                    </div>
+                  </div>
+                )}
               </CardHeader>
 
               <CardContent className="px-8 pb-8">
@@ -877,5 +971,6 @@ export function PropertyListingForm() {
         </Card>
       </div>
     </div>
+    </>
   );
 }

@@ -4,7 +4,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 
 const s3Client = new S3Client({});
-const BUCKET_NAME = process.env.PROPERTY_IMAGES_BUCKET_NAME!;
+const BUCKET_NAME = process.env.USER_FILES_BUCKET_NAME!;
 const UPLOAD_EXPIRY_SECONDS = 300; // 5 minutes
 
 interface GetUploadUrlArgs {
@@ -41,11 +41,11 @@ export const handler: AppSyncResolverHandler<GetUploadUrlArgs, UploadUrlResponse
     throw new Error(`Invalid content type. Allowed types: ${allowedContentTypes.join(', ')}`);
   }
 
-  // Generate a unique file key
+  // Generate a unique file key for temporary storage
   const fileExtension = fileName.split('.').pop() || 'jpg';
   const uniqueId = randomUUID();
   const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  const fileKey = `property-images/${timestamp}/${uniqueId}.${fileExtension}`;
+  const fileKey = `temp-uploads/${timestamp}/${uniqueId}.${fileExtension}`;
 
   try {
     // Create the PutObject command

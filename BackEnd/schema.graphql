@@ -143,6 +143,7 @@ type Query {
   
   # List user's own properties
   listMyProperties(
+    userId: String!
     limit: Int
     nextToken: String
   ): PropertyConnection! @aws_auth(cognito_groups: ["user", "paid", "admin"])
@@ -155,6 +156,12 @@ type Query {
   
   # Get all reports for the current user
   listMyReports(limit: Int, nextToken: String): ReportConnection! @aws_auth(cognito_groups: ["paid", "admin"])
+  
+  # Admin only query to list pending properties
+  listPendingProperties(
+    limit: Int
+    nextToken: String
+  ): PropertyConnection! @aws_auth(cognito_groups: ["admin"])
 }
 
 type ReportConnection {
@@ -282,8 +289,8 @@ type ReportMetadata {
 }
 
 type Subscription {
-  onPropertyCreated: Property
-    @aws_subscribe(mutations: ["createProperty"])
+  # Subscription removed since createProperty now returns PropertyUploadResponse
+  # You can subscribe to property status changes if needed
   
   onPropertyUpdated: Property
     @aws_subscribe(mutations: ["updateProperty"])

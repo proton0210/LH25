@@ -71,6 +71,14 @@ export enum PropertyStatus {
   REJECTED = "REJECTED",
 }
 
+export enum ReportType {
+  MARKET_ANALYSIS = "MARKET_ANALYSIS",
+  INVESTMENT_ANALYSIS = "INVESTMENT_ANALYSIS",
+  COMPARATIVE_MARKET_ANALYSIS = "COMPARATIVE_MARKET_ANALYSIS",
+  LISTING_OPTIMIZATION = "LISTING_OPTIMIZATION",
+  CUSTOM = "CUSTOM",
+}
+
 export interface PropertyConnection {
   items: Property[];
   nextToken?: string;
@@ -86,6 +94,83 @@ export interface PropertyFilter {
   propertyType?: PropertyType;
   listingType?: ListingType;
   status?: PropertyStatus;
+}
+
+export interface PropertyUploadResponse {
+  executionArn: string;
+  startDate: string;
+  message: string;
+}
+
+export interface ReportStatus {
+  status: string;
+  reportId?: string;
+  signedUrl?: string;
+  s3Key?: string;
+  error?: string;
+}
+
+export interface UserReport {
+  reportId: string;
+  fileName: string;
+  reportType: string;
+  propertyTitle: string;
+  createdAt: string;
+  size: number;
+  signedUrl: string;
+  s3Key: string;
+}
+
+export interface ReportConnection {
+  items: UserReport[];
+  nextToken?: string;
+}
+
+export interface GenerateReportInput {
+  title: string;
+  description: string;
+  price: number;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  bedrooms: number;
+  bathrooms: number;
+  squareFeet: number;
+  propertyType: PropertyType;
+  listingType: ListingType;
+  yearBuilt?: number;
+  lotSize?: number;
+  amenities?: string[];
+  reportType: ReportType;
+  additionalContext?: string;
+  includeDetailedAmenities?: boolean;
+  cognitoUserId?: string;
+}
+
+export interface PropertyReport {
+  reportId: string;
+  reportType: ReportType;
+  generatedAt: string;
+  content: string;
+  propertyTitle: string;
+  executiveSummary?: string;
+  marketInsights?: string;
+  recommendations?: string;
+  metadata?: {
+    modelUsed: string;
+    generationTimeMs: number;
+    wordCount?: number;
+  };
+  signedUrl?: string;
+  s3Key?: string;
+  executionArn?: string;
+}
+
+export interface UpgradeUserResponse {
+  success: boolean;
+  message: string;
+  executionArn?: string;
 }
 
 // API functions
@@ -109,7 +194,8 @@ export const api = {
   },
 
   // Property queries
-  async listMyProperties(variables?: {
+  async listMyProperties(variables: {
+    userId: string;
     limit?: number;
     nextToken?: string;
   }): Promise<PropertyConnection> {
@@ -173,7 +259,7 @@ export const api = {
       Property,
       "id" | "submittedBy" | "submittedAt" | "updatedAt" | "status" | "isPublic"
     >
-  ): Promise<Property> {
+  ): Promise<PropertyUploadResponse> {
     try {
       const result = await client.graphql({
         query: mutations.createProperty,
@@ -246,11 +332,7 @@ export const api = {
     }
   },
 
-  async upgradeUserToPaid(cognitoUserId: string): Promise<{
-    success: boolean;
-    message: string;
-    executionArn?: string;
-  }> {
+  async upgradeUserToPaid(cognitoUserId: string): Promise<UpgradeUserResponse> {
     try {
       const result = await client.graphql({
         query: mutations.upgradeUserToPaid,
@@ -270,19 +352,7 @@ export const api = {
   async listMyReports(variables?: {
     limit?: number;
     nextToken?: string;
-  }): Promise<{
-    items: Array<{
-      reportId: string;
-      fileName: string;
-      reportType: string;
-      propertyTitle: string;
-      createdAt: string;
-      size: number;
-      signedUrl: string;
-      s3Key: string;
-    }>;
-    nextToken: string | null;
-  }> {
+  }): Promise<ReportConnection> {
     try {
       const result = await client.graphql({
         query: queries.listMyReports,
@@ -295,6 +365,95 @@ export const api = {
       throw new Error("Unexpected GraphQL result type");
     } catch (error) {
       console.error("Error fetching reports:", error);
+      throw error;
+    }
+  },
+
+  async getReportStatus(executionArn: string): Promise<ReportStatus> {
+    try {
+      const result = await client.graphql({
+        query: queries.getReportStatus,
+        variables: { executionArn },
+        authMode: 'userPool',
+      });
+      if ("data" in result) {
+        return result.data.getReportStatus;
+      }
+      throw new Error("Unexpected GraphQL result type");
+    } catch (error) {
+      console.error("Error fetching report status:", error);
+      throw error;
+    }
+  },
+
+  async generatePropertyReport(input: GenerateReportInput): Promise<PropertyReport> {
+    try {
+      const result = await client.graphql({
+        query: mutations.generatePropertyReport,
+        variables: { input },
+        authMode: 'userPool',
+      });
+      if ("data" in result) {
+        return result.data.generatePropertyReport;
+      }
+      throw new Error("Unexpected GraphQL result type");
+    } catch (error) {
+      console.error("Error generating property report:", error);
+      throw error;
+    }
+  },
+
+  // Admin functions
+  async listPendingProperties(variables?: {
+    limit?: number;
+    nextToken?: string;
+  }): Promise<PropertyConnection> {
+    try {
+      const result = await client.graphql({
+        query: queries.listPendingProperties,
+        variables,
+        authMode: 'userPool',
+      });
+      if ("data" in result) {
+        return result.data.listPendingProperties;
+      }
+      throw new Error("Unexpected GraphQL result type");
+    } catch (error) {
+      console.error("Error fetching pending properties:", error);
+      throw error;
+    }
+  },
+
+  async approveProperty(id: string): Promise<Property> {
+    try {
+      const result = await client.graphql({
+        query: mutations.approveProperty,
+        variables: { id },
+        authMode: 'userPool',
+      });
+      if ("data" in result) {
+        return result.data.approveProperty;
+      }
+      throw new Error("Unexpected GraphQL result type");
+    } catch (error) {
+      console.error("Error approving property:", error);
+      throw error;
+    }
+  },
+
+  async rejectProperty(id: string, reason: string): Promise<Property> {
+    try {
+      const result = await client.graphql({
+        query: mutations.rejectProperty,
+        variables: { id, reason },
+        authMode: 'userPool',
+      });
+      if ("data" in result) {
+        return result.data.rejectProperty;
+      }
+      throw new Error("Unexpected GraphQL result type");
+    } catch (error) {
+      console.error("Error rejecting property:", error);
       throw error;
     }
   },

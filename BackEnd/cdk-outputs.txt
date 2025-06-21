@@ -1,5 +1,5 @@
 # CDK Stack Outputs
-# Generated on: 2025-06-19T18:24:35.823Z
+# Generated on: 2025-06-21T15:47:51.846Z
 
 AdminGroupName=admin
 GraphQLApiId=iivw24s5xffwjbtrkke2qfnlaq
@@ -8,6 +8,7 @@ PaidGroupName=paid
 PostConfirmationLambdaArn=arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostConfirmationLambdaC4F60401-J2ZDyJ1DyHxF
 PropertiesTableName=lh-properties
 PropertyImagesBucketName=lh-property-images-585768150182-ap-south-1
+PropertyUploadStateMachineArn=arn:aws:states:ap-south-1:585768150182:stateMachine:property-upload-workflow
 ReportGenerationStateMachineArn=arn:aws:states:ap-south-1:585768150182:stateMachine:property-report-generation-workflow
 ResendAPIKeyNote=Deploy with: npx cdk deploy --context resendApiKey=YOUR_RESEND_API_KEY
 ResendConfigurationNote=Remember to add your domain to Resend and configure your Resend API key
@@ -27,6 +28,7 @@ export PAID_GROUP_NAME="paid"
 export POST_CONFIRMATION_LAMBDA_ARN="arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostConfirmationLambdaC4F60401-J2ZDyJ1DyHxF"
 export PROPERTIES_TABLE_NAME="lh-properties"
 export PROPERTY_IMAGES_BUCKET_NAME="lh-property-images-585768150182-ap-south-1"
+export PROPERTY_UPLOAD_STATE_MACHINE_ARN="arn:aws:states:ap-south-1:585768150182:stateMachine:property-upload-workflow"
 export REPORT_GENERATION_STATE_MACHINE_ARN="arn:aws:states:ap-south-1:585768150182:stateMachine:property-report-generation-workflow"
 export RESEND_A_P_I_KEY_NOTE="Deploy with: npx cdk deploy --context resendApiKey=YOUR_RESEND_API_KEY"
 export RESEND_CONFIGURATION_NOTE="Remember to add your domain to Resend and configure your Resend API key"

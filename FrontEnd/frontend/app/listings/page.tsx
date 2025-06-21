@@ -27,21 +27,24 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api/graphql-client';
 import { PaymentModal } from '@/components/payment/payment-modal';
 import { AIInsightsModal } from '@/components/property/ai-insights-modal';
+import { useSearchParams } from 'next/navigation';
 
 export default function ListingsPage() {
   const { user, signOut } = useAuth();
   const { userSub, email, clearUser } = useUserStore();
   const { data: userDetails, isLoading: userLoading, refetch: refetchUserDetails } = useUserDetails();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentImageIndex, setCurrentImageIndex] = useState<{[key: string]: number}>({});
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
   const [selectedPropertyForAI, setSelectedPropertyForAI] = useState<any>(null);
   const [showAIInsights, setShowAIInsights] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<{ show: boolean; executionArn?: string; message?: string }>({ show: false });
 
   // Helper function to format enum values for display
   const formatListingType = (type: string): string => {
@@ -288,6 +291,35 @@ export default function ListingsPage() {
     window.location.reload();
   };
 
+  // Check for upload status from URL params
+  useEffect(() => {
+    const status = searchParams.get('uploadStatus');
+    const executionArn = searchParams.get('executionArn');
+    
+    if (status === 'initiated' && executionArn) {
+      setUploadStatus({ 
+        show: true, 
+        executionArn,
+        message: 'Your property listing is being processed. You can check the status in your dashboard.'
+      });
+      
+      // Clean up URL params after showing message
+      const timer = setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('uploadStatus');
+        url.searchParams.delete('executionArn');
+        window.history.replaceState({}, '', url.toString());
+        
+        // Hide message after 10 seconds
+        setTimeout(() => {
+          setUploadStatus({ show: false });
+        }, 10000);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50">
@@ -389,6 +421,35 @@ export default function ListingsPage() {
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Upload Status Notification */}
+          {uploadStatus.show && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg shadow-sm animate-in slide-in-from-top duration-300">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-green-800">Property Upload Initiated</h3>
+                  <p className="text-sm text-green-700 mt-1">{uploadStatus.message}</p>
+                  {uploadStatus.executionArn && (
+                    <p className="text-xs text-green-600 mt-2 font-mono">Tracking ID: {uploadStatus.executionArn.split(':').pop()}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setUploadStatus({ show: false })}
+                  className="flex-shrink-0 text-green-500 hover:text-green-700 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
           {/* User Details Card */}
           {userLoading ? (
             <div className="mb-8 flex items-center justify-center">
