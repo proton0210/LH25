@@ -43,7 +43,7 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
   const generateAIReport = async () => {
     try {
       setIsGenerating(true);
-      setGenerationPhase('Initializing AI engine...');
+      setGenerationPhase('Initializing AI analysis engine...');
 
       // Helper function to map listing type to enum value
       const mapListingType = (type: string): string => {
@@ -105,7 +105,7 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
 
       console.log('GeneratePropertyReport input:', input);
       
-      setGenerationPhase('Analyzing property data...');
+      setGenerationPhase('Collecting property information...');
       
       const response = await client.graphql({
         query: generatePropertyReport,
@@ -124,7 +124,7 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
         // Otherwise, start polling for report status
         else if (report.executionArn) {
           setExecutionArn(report.executionArn);
-          setGenerationPhase('Processing market analysis...');
+          setGenerationPhase('Starting comprehensive analysis...');
           startPolling(report.executionArn);
         } else {
           throw new Error('No execution ARN or signed URL received');
@@ -149,20 +149,39 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
     const maxPolls = 60; // Poll for max 2 minutes (60 * 2 seconds)
     
     const phases = [
-      'Processing market analysis...',
+      'Analyzing past transactions in the area...',
+      'Searching for nearby schools and ratings...',
+      'Looking for hospitals and medical facilities...',
+      'Examining local shopping centers...',
+      'Evaluating public transportation access...',
+      'Calculating market trends...',
       'Comparing with similar properties...',
+      'Analyzing crime statistics...',
+      'Checking environmental factors...',
+      'Reviewing zoning regulations...',
       'Calculating investment metrics...',
-      'Analyzing neighborhood data...',
-      'Generating insights...',
-      'Preparing your report...'
+      'Evaluating rental potential...',
+      'Analyzing neighborhood demographics...',
+      'Studying price appreciation trends...',
+      'Examining property tax history...',
+      'Checking flood zone status...',
+      'Reviewing HOA information...',
+      'Analyzing walkability scores...',
+      'Evaluating noise levels...',
+      'Generating personalized insights...',
+      'Compiling comprehensive report...',
+      'Finalizing your analysis...'
     ];
+    
+    // Create a separate interval for rotating messages
+    let messageIndex = 0;
+    const messageInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % phases.length;
+      setGenerationPhase(phases[messageIndex]);
+    }, 2000); // Change message every 2 seconds
     
     pollingInterval.current = setInterval(async () => {
       pollCount++;
-      
-      // Update phase based on poll count
-      const phaseIndex = Math.min(Math.floor(pollCount / 10), phases.length - 1);
-      setGenerationPhase(phases[phaseIndex]);
       
       try {
         const statusResponse = await client.graphql({
@@ -177,12 +196,14 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
           if ((status.status === 'SUCCEEDED' || status.status === 'COMPLETED') && status.signedUrl) {
             setReportUrl(status.signedUrl);
             setIsGenerating(false);
+            clearInterval(messageInterval);
             if (pollingInterval.current) {
               clearInterval(pollingInterval.current);
             }
           } else if (status.status === 'FAILED') {
             setError(status.error || 'Report generation failed');
             setIsGenerating(false);
+            clearInterval(messageInterval);
             if (pollingInterval.current) {
               clearInterval(pollingInterval.current);
             }
@@ -195,6 +216,7 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
       if (pollCount >= maxPolls) {
         setError('Report generation timed out. Please try again.');
         setIsGenerating(false);
+        clearInterval(messageInterval);
         if (pollingInterval.current) {
           clearInterval(pollingInterval.current);
         }

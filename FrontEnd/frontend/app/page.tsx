@@ -47,28 +47,6 @@ export default function HomePage() {
     { value: "24/7", label: "Bedrock-AI Support" }
   ];
 
-  const howItWorks = [
-    {
-      step: "1",
-      title: "Create Your Profile",
-      description: "Sign up and get verified in minutes"
-    },
-    {
-      step: "2",
-      title: "Browse Smart",
-      description: "Use Bedrock-AI insights to make informed decisions"
-    },
-    {
-      step: "3",
-      title: "Connect Directly",
-      description: "Chat with verified owners, no agents involved"
-    },
-    {
-      step: "4",
-      title: "Close the Deal",
-      description: "Complete paperwork with our legal support"
-    }
-  ];
 
   const testimonials = [
     {
@@ -201,36 +179,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how-it-works" className="py-20 bg-gradient-to-br from-grey-50 to-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-grey-900 mb-4">
-              How It Works
-            </h2>
-            <p className="text-lg text-grey-600 max-w-2xl mx-auto">
-              Your journey to finding the perfect property in 4 simple steps
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-4 gap-8">
-            {howItWorks.map((item, index) => (
-              <div key={index} className="relative">
-                {index < howItWorks.length - 1 && (
-                  <div className="hidden md:block absolute top-8 left-[60%] w-full h-0.5 bg-gradient-to-r from-pink-300 to-purple-300" />
-                )}
-                <div className="relative z-10 text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-pink-600 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4 shadow-lg">
-                    {item.step}
-                  </div>
-                  <h3 className="font-semibold text-grey-900 mb-2">{item.title}</h3>
-                  <p className="text-sm text-grey-600">{item.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Testimonials */}
       <section id="testimonials" className="py-20 bg-white">
@@ -334,7 +282,6 @@ export default function HomePage() {
             <div>
               <h4 className="font-semibold mb-4">Learn More</h4>
               <ul className="space-y-2 text-sm text-grey-400">
-                <li><a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a></li>
                 <li><a href="#testimonials" className="hover:text-white transition-colors">Testimonials</a></li>
                 <li><Link href="/colors" className="hover:text-white transition-colors">Brand Colors</Link></li>
               </ul>
