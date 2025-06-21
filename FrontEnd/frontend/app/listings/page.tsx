@@ -27,13 +27,13 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { api } from '@/lib/api/graphql-client';
 import { PaymentModal } from '@/components/payment/payment-modal';
 import { AIInsightsModal } from '@/components/property/ai-insights-modal';
 import { useSearchParams } from 'next/navigation';
 
-export default function ListingsPage() {
+function ListingsContent() {
   const { user, signOut } = useAuth();
   const { userSub, email, clearUser } = useUserStore();
   const { data: userDetails, isLoading: userLoading, refetch: refetchUserDetails } = useUserDetails();
@@ -723,5 +723,17 @@ export default function ListingsPage() {
         property={selectedPropertyForAI}
       />
     </ProtectedRoute>
+  );
+}
+
+export default function ListingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-cyan-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+      </div>
+    }>
+      <ListingsContent />
+    </Suspense>
   );
 }
