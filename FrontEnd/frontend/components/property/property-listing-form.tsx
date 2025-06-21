@@ -334,15 +334,17 @@ export function PropertyListingForm() {
     setImagePreviews(randomProperty.images);
     
     // Create dummy File objects for form validation
-    const dummyFiles = randomProperty.images.map((url, index) => {
-      const file = new File(['dummy'], `property-image-${index + 1}.jpg`, { type: 'image/jpeg' });
-      // Store the URL as a property on the file for later use
-      (file as any).dummyUrl = url;
-      return file;
-    });
-    
-    setImageFiles(dummyFiles);
-    form.setValue('images', dummyFiles);
+    if (typeof window !== 'undefined') {
+      const dummyFiles = randomProperty.images.map((url, index) => {
+        const file = new File(['dummy'], `property-image-${index + 1}.jpg`, { type: 'image/jpeg' });
+        // Store the URL as a property on the file for later use
+        (file as any).dummyUrl = url;
+        return file;
+      });
+      
+      setImageFiles(dummyFiles);
+      form.setValue('images', dummyFiles);
+    }
     
     // Clear any errors
     setError(null);

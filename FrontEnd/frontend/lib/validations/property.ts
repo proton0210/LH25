@@ -114,17 +114,19 @@ export const propertySchema = z.object({
   status: z.enum(propertyStatuses).default('ACTIVE'),
   
   // Images will be handled separately as File objects
-  images: z
-    .array(z.instanceof(File))
-    .length(4, 'Exactly 4 images are required')
-    .refine(
-      (files) => files.every(file => file.size <= MAX_FILE_SIZE),
-      'Each image must be less than 10MB'
-    )
-    .refine(
-      (files) => files.every(file => ACCEPTED_IMAGE_TYPES.includes(file.type)),
-      'Only .jpg, .jpeg, .png and .webp formats are supported'
-    ),
+  images: typeof window !== 'undefined' 
+    ? z
+        .array(z.instanceof(File))
+        .length(4, 'Exactly 4 images are required')
+        .refine(
+          (files) => files.every(file => file.size <= MAX_FILE_SIZE),
+          'Each image must be less than 10MB'
+        )
+        .refine(
+          (files) => files.every(file => ACCEPTED_IMAGE_TYPES.includes(file.type)),
+          'Only .jpg, .jpeg, .png and .webp formats are supported'
+        )
+    : z.array(z.any()).length(4, 'Exactly 4 images are required'),
 });
 
 export type PropertyFormData = z.infer<typeof propertySchema>;
