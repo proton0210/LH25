@@ -1,11 +1,15 @@
 import { AppSyncResolverHandler } from 'aws-lambda';
+import { SFNClient, StartExecutionCommand } from '@aws-sdk/client-sfn';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { ulid } from 'ulid';
 
+const sfnClient = new SFNClient({});
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
-const TABLE_NAME = process.env.PROPERTIES_TABLE_NAME!;
+
+const STATE_MACHINE_ARN = process.env.PROPERTY_UPLOAD_STATE_MACHINE_ARN!;
+const USER_TABLE_NAME = process.env.USER_TABLE_NAME!;
 
 interface CreatePropertyInput {
   title: string;
@@ -39,91 +43,80 @@ interface Property extends CreatePropertyInput {
   isPublic: boolean;
 }
 
-export const handler: AppSyncResolverHandler<{ input: CreatePropertyInput }, Property> = async (event) => {
+interface PropertyUploadResponse {
+  executionArn: string;
+  startDate: string;
+  message: string;
+}
+
+export const handler: AppSyncResolverHandler<{ input: CreatePropertyInput }, PropertyUploadResponse> = async (event) => {
   console.log('CreateProperty event:', JSON.stringify(event, null, 2));
 
   const { input } = event.arguments;
   const identity = event.identity;
 
-  // Validate required fields
+  // Basic validation (detailed validation will be done in Step Functions)
   if (!input.title || !input.description || !input.price || !input.address || 
       !input.city || !input.state || !input.zipCode || !input.contactEmail) {
     throw new Error('Missing required fields');
   }
 
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(input.contactEmail)) {
-    throw new Error('Invalid email format');
-  }
-
-  // Validate phone format (basic validation)
-  const phoneRegex = /^[\d\s\-\+\(\)]+$/;
-  if (input.contactPhone && !phoneRegex.test(input.contactPhone)) {
-    throw new Error('Invalid phone format');
-  }
-
-  // Generate unique ID
-  const propertyId = ulid();
-  const now = new Date().toISOString();
-
-  // Determine submittedBy based on authentication
-  let submittedBy: string | undefined;
+  // Determine user information
+  let userId: string | undefined;
+  let cognitoUserId: string | undefined;
+  
   if (identity && 'username' in identity) {
     // Cognito authenticated user
-    submittedBy = identity.username;
-  } else if (identity && 'userArn' in identity) {
-    // IAM authenticated user
-    submittedBy = identity.userArn;
+    cognitoUserId = identity.username;
+    
+    // Try to get userId from user table
+    try {
+      const queryResult = await docClient.send(new QueryCommand({
+        TableName: USER_TABLE_NAME,
+        IndexName: 'cognitoUserId',
+        KeyConditionExpression: 'cognitoUserId = :cognitoUserId',
+        ExpressionAttributeValues: {
+          ':cognitoUserId': cognitoUserId
+        },
+        Limit: 1
+      }));
+      
+      if (queryResult.Items && queryResult.Items.length > 0) {
+        userId = queryResult.Items[0].userId;
+      }
+    } catch (error) {
+      console.log('Could not retrieve userId:', error);
+    }
   }
 
-  // Create property object
-  const property: Property = {
-    id: propertyId,
+  // Prepare input for Step Functions
+  const stepFunctionInput = {
     ...input,
-    submittedBy,
-    submittedAt: now,
-    updatedAt: now,
-    status: 'PENDING_REVIEW', // All new properties start as pending review
-    isPublic: true, // Public submissions are always public
-  };
-
-  // Add GSI attributes for querying
-  const dynamoItem = {
-    ...property,
-    pk: `PROPERTY#${propertyId}`,
-    sk: `PROPERTY#${propertyId}`,
-    // GSI1: Query by status
-    gsi1pk: `STATUS#${property.status}`,
-    gsi1sk: `SUBMITTED#${property.submittedAt}`,
-    // GSI2: Query by city/state
-    gsi2pk: `LOCATION#${property.state}#${property.city}`,
-    gsi2sk: `PRICE#${property.price.toString().padStart(10, '0')}`,
-    // GSI3: Query by property type
-    gsi3pk: `TYPE#${property.propertyType}`,
-    gsi3sk: `SUBMITTED#${property.submittedAt}`,
-    // GSI4: Query by listing type
-    gsi4pk: `LISTING#${property.listingType}`,
-    gsi4sk: `PRICE#${property.price.toString().padStart(10, '0')}`,
-    // GSI5: Query by submittedBy (if authenticated)
-    ...(submittedBy && {
-      gsi5pk: `USER#${submittedBy}`,
-      gsi5sk: `SUBMITTED#${property.submittedAt}`,
-    }),
+    userId,
+    cognitoUserId,
+    requestId: ulid(),
+    timestamp: new Date().toISOString()
   };
 
   try {
-    // Save to DynamoDB
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: dynamoItem,
-      ConditionExpression: 'attribute_not_exists(pk)', // Ensure uniqueness
-    }));
+    // Start Step Functions execution
+    const command = new StartExecutionCommand({
+      stateMachineArn: STATE_MACHINE_ARN,
+      name: `property-upload-${stepFunctionInput.requestId}`,
+      input: JSON.stringify(stepFunctionInput)
+    });
 
-    console.log('Property created successfully:', propertyId);
-    return property;
+    const result = await sfnClient.send(command);
+
+    console.log('Started property upload workflow:', result.executionArn);
+
+    return {
+      executionArn: result.executionArn!,
+      startDate: result.startDate!.toISOString(),
+      message: 'Property upload workflow started successfully. You will receive an email notification once your listing is processed.'
+    };
   } catch (error) {
-    console.error('Error creating property:', error);
-    throw new Error('Failed to create property');
+    console.error('Error starting property upload workflow:', error);
+    throw new Error('Failed to start property upload process');
   }
 };

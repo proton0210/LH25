@@ -181,6 +181,12 @@ type ReportStatus {
   error: String
 }
 
+type PropertyUploadResponse {
+  executionArn: String!
+  startDate: String!
+  message: String!
+}
+
 type Mutation {
   # All mutations require authentication
   getUploadUrl(
@@ -188,7 +194,7 @@ type Mutation {
     contentType: String!
   ): UploadUrl! @aws_auth(cognito_groups: ["user", "paid", "admin"])
   
-  createProperty(input: CreatePropertyInput!): Property! @aws_auth(cognito_groups: ["user", "paid", "admin"])
+  createProperty(input: CreatePropertyInput!): PropertyUploadResponse! @aws_auth(cognito_groups: ["user", "paid", "admin"])
   
   # Only property owner or admin can update/delete
   updateProperty(input: UpdatePropertyInput!): Property! 

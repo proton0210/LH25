@@ -477,11 +477,214 @@ export class BackEndStack extends cdk.Stack {
       xrayEnabled: true,
     });
 
+    // =====================================================
+    // PROPERTY UPLOAD WORKFLOW (STEP FUNCTIONS)
+    // =====================================================
+
+    // Create Lambda functions for property upload workflow
+    const validatePropertyDataLambda = new NodejsFunction(
+      this,
+      "ValidatePropertyDataLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/property-upload/validate-property-data/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    const uploadImagesToS3Lambda = new NodejsFunction(
+      this,
+      "UploadImagesToS3Lambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/property-upload/upload-images-to-s3/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+
+    const savePropertyToDynamoDBLambda = new NodejsFunction(
+      this,
+      "SavePropertyToDynamoDBLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/property-upload/save-property-to-dynamodb/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          PROPERTIES_TABLE_NAME: propertiesTable.tableName,
+        },
+        timeout: cdk.Duration.seconds(10),
+      }
+    );
+
+    const sendPendingApprovalNotificationLambda = new NodejsFunction(
+      this,
+      "SendPendingApprovalNotificationLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/property-upload/send-pending-approval-notification/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_TABLE_NAME: userTable.tableName,
+          RESEND_API_KEY: this.node.tryGetContext('resendApiKey') || '',
+        },
+        timeout: cdk.Duration.seconds(30),
+      }
+    );
+
+    // Grant permissions
+    userFilesBucket.grantReadWrite(uploadImagesToS3Lambda);
+    propertiesTable.grantWriteData(savePropertyToDynamoDBLambda);
+    userTable.grantReadData(sendPendingApprovalNotificationLambda);
+
+    // Create Step Functions tasks
+    const validatePropertyDataTask = new tasks.LambdaInvoke(
+      this,
+      "ValidatePropertyDataTask",
+      {
+        lambdaFunction: validatePropertyDataLambda,
+        outputPath: "$.Payload",
+        resultSelector: {
+          "isValid.$": "$.isValid",
+          "errors.$": "$.errors",
+          "propertyData.$": "$.propertyData",
+        },
+      }
+    );
+
+    const uploadImagesToS3Task = new tasks.LambdaInvoke(
+      this,
+      "UploadImagesToS3Task",
+      {
+        lambdaFunction: uploadImagesToS3Lambda,
+        inputPath: "$",
+        outputPath: "$.Payload",
+        resultSelector: {
+          "success.$": "$.success",
+          "propertyId.$": "$.propertyId",
+          "uploadedImages.$": "$.uploadedImages",
+          "propertyData.$": "$.propertyData",
+          "error.$": "$.error",
+        },
+      }
+    );
+
+    const savePropertyToDynamoDBTask = new tasks.LambdaInvoke(
+      this,
+      "SavePropertyToDynamoDBTask",
+      {
+        lambdaFunction: savePropertyToDynamoDBLambda,
+        outputPath: "$.Payload",
+        resultSelector: {
+          "success.$": "$.success",
+          "property.$": "$.property",
+          "error.$": "$.error",
+        },
+      }
+    );
+
+    const sendPendingApprovalNotificationTask = new tasks.LambdaInvoke(
+      this,
+      "SendPendingApprovalNotificationTask",
+      {
+        lambdaFunction: sendPendingApprovalNotificationLambda,
+        inputPath: "$",
+        outputPath: "$.Payload",
+        retryOnServiceExceptions: true,
+      }
+    );
+
+    // Create error handling states
+    const validationFailed = new sfn.Fail(this, "ValidationFailed", {
+      error: "PropertyValidationError",
+      cause: "Property data validation failed",
+    });
+
+    const uploadFailed = new sfn.Fail(this, "UploadFailed", {
+      error: "ImageUploadError",
+      cause: "Failed to upload property images",
+    });
+
+    const saveFailed = new sfn.Fail(this, "SaveFailed", {
+      error: "SavePropertyError",
+      cause: "Failed to save property to database",
+    });
+
+    // Define the property upload workflow
+    const validationChoice = new sfn.Choice(this, "IsValidProperty?")
+      .when(sfn.Condition.booleanEquals("$.isValid", true), uploadImagesToS3Task)
+      .otherwise(validationFailed);
+
+    const uploadChoice = new sfn.Choice(this, "UploadSuccessful?")
+      .when(sfn.Condition.booleanEquals("$.success", true), savePropertyToDynamoDBTask)
+      .otherwise(uploadFailed);
+
+    const saveChoice = new sfn.Choice(this, "SaveSuccessful?")
+      .when(sfn.Condition.booleanEquals("$.success", true), sendPendingApprovalNotificationTask)
+      .otherwise(saveFailed);
+
+    const propertyUploadDefinition = validatePropertyDataTask
+      .next(validationChoice);
+
+    uploadImagesToS3Task.next(uploadChoice);
+    savePropertyToDynamoDBTask.next(saveChoice);
+
+    const propertyUploadStateMachine = new sfn.StateMachine(
+      this,
+      "PropertyUploadStateMachine",
+      {
+        stateMachineName: "property-upload-workflow",
+        definition: propertyUploadDefinition,
+        timeout: cdk.Duration.minutes(5),
+      }
+    );
+
     // Create Lambda Resolvers
     const resolverEnvironment = {
       PROPERTIES_TABLE_NAME: propertiesTable.tableName,
       PROPERTY_IMAGES_BUCKET_NAME: propertyImagesBucket.bucketName,
       USER_TABLE_NAME: userTable.tableName,
+      PROPERTY_UPLOAD_STATE_MACHINE_ARN: propertyUploadStateMachine.stateMachineArn,
     };
 
     // Get Upload URL Lambda
@@ -523,6 +726,9 @@ export class BackEndStack extends cdk.Stack {
         timeout: cdk.Duration.seconds(10),
       }
     );
+
+    // Grant permission to start property upload workflow
+    propertyUploadStateMachine.grantStartExecution(createPropertyLambda);
 
     // Get Property Lambda
     const getPropertyLambda = new NodejsFunction(this, "GetPropertyLambda", {
@@ -708,6 +914,7 @@ export class BackEndStack extends cdk.Stack {
 
     // Grant user table permissions
     userTable.grantReadData(getUserDetailsLambda);
+    userTable.grantReadData(createPropertyLambda);
 
     // Grant S3 permissions
     propertyImagesBucket.grantPut(getUploadUrlLambda);
@@ -1384,6 +1591,11 @@ export class BackEndStack extends cdk.Stack {
     new cdk.CfnOutput(this, "ReportGenerationStateMachineArn", {
       value: reportGenerationStateMachine.stateMachineArn,
       description: "The ARN of the Report Generation Step Functions state machine",
+    });
+
+    new cdk.CfnOutput(this, "PropertyUploadStateMachineArn", {
+      value: propertyUploadStateMachine.stateMachineArn,
+      description: "The ARN of the Property Upload Step Functions state machine",
     });
   }
 }
