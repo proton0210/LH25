@@ -1,3 +1,5 @@
+'use client';
+
 import { PropertyListingForm } from '@/components/property/property-listing-form';
 
 export default function ListPropertyPage() {
