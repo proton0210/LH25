@@ -518,6 +518,17 @@ export function MultiStepSignUp() {
                     Sign in
                   </Link>
                 </p>
+                <p className="text-xs text-grey-500 mt-4">
+                  Made for 2025 AWS Lambda Hackathon with ❤️ by{' '}
+                  <Link 
+                    href="https://www.linkedin.com/in/vidit-shah/" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-pink-600 hover:text-pink-700 transition-colors"
+                  >
+                    Vidit
+                  </Link>
+                </p>
               </div>
             </CardFooter>
           </div>
