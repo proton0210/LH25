@@ -43,7 +43,7 @@ const amplifyConfig = {
     GraphQL: {
       endpoint: 'https://tczunefzunff3eu6uie2egfdqq.appsync-api.ap-south-1.amazonaws.com/graphql',
       region: process.env.NEXT_PUBLIC_AWS_REGION || 'ap-south-1',
-      defaultAuthMode: 'userPool',
+      defaultAuthMode: 'userPool' as any,
     }
   }
 };

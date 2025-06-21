@@ -6,7 +6,7 @@ import { ReactNode, useEffect } from 'react';
 import { AuthProvider } from '@/hooks/useAuth';
 import { QueryProvider } from '@/providers/query-provider';
 
-Amplify.configure(amplifyConfig);
+Amplify.configure(amplifyConfig as any);
 
 interface ProvidersProps {
   children: ReactNode;
