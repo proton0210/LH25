@@ -236,9 +236,6 @@ export default function HomePage() {
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="bg-white/10 text-white border-white/30 hover:bg-white/20" asChild>
-                <Link href="/list-property">List Your Property</Link>
-              </Button>
             </div>
             <p className="mt-6 text-sm text-white/70">
               No credit card required • Free forever for buyers
@@ -250,41 +247,15 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="py-12 bg-grey-900 text-white">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
+          <div className="mb-8">
+            <div className="max-w-md mx-auto text-center">
+              <div className="flex items-center gap-2 mb-4 justify-center">
                 <Building2 className="w-6 h-6 text-pink-400" />
                 <span className="text-xl font-bold">Lambda Houses</span>
               </div>
               <p className="text-grey-400 text-sm">
                 The first Bedrock-AI powered, zero-brokerage real estate platform
               </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Get Started</h4>
-              <ul className="space-y-2 text-sm text-grey-400">
-                <li><Link href="/signup" className="hover:text-white transition-colors">Sign Up</Link></li>
-                <li><Link href="/login" className="hover:text-white transition-colors">Login</Link></li>
-                <li><Link href="/list-property" className="hover:text-white transition-colors">List Property</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Features</h4>
-              <ul className="space-y-2 text-sm text-grey-400">
-                <li><a href="#features" className="hover:text-white transition-colors">Bedrock-AI Insights</a></li>
-                <li><a href="#features" className="hover:text-white transition-colors">Verified Users</a></li>
-                <li><a href="#features" className="hover:text-white transition-colors">Zero Brokerage</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Learn More</h4>
-              <ul className="space-y-2 text-sm text-grey-400">
-                <li><a href="#testimonials" className="hover:text-white transition-colors">Testimonials</a></li>
-                <li><Link href="/colors" className="hover:text-white transition-colors">Brand Colors</Link></li>
-              </ul>
             </div>
           </div>
           
