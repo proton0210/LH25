@@ -669,6 +669,7 @@ export class BackEndStack extends cdk.Stack {
       PROPERTY_IMAGES_BUCKET_NAME: propertyImagesBucket.bucketName,
       USER_TABLE_NAME: userTable.tableName,
       PROPERTY_UPLOAD_STATE_MACHINE_ARN: propertyUploadStateMachine.stateMachineArn,
+      USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
     };
 
     // Get Upload URL Lambda
@@ -940,6 +941,8 @@ export class BackEndStack extends cdk.Stack {
     userFilesBucket.grantPut(getUploadUrlLambda);
     userFilesBucket.grantRead(listMyPropertiesLambda);
     userFilesBucket.grantRead(listPendingPropertiesLambda);
+    userFilesBucket.grantRead(listPropertiesLambda);
+    userFilesBucket.grantRead(getPropertyLambda);
     propertyImagesBucket.grantDelete(deletePropertyLambda);
 
     // Create Data Sources

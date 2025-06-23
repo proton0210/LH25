@@ -24,6 +24,7 @@ type Property {
   propertyType: PropertyType!
   listingType: ListingType!
   images: [String!]!
+  imageUrls: [String!] # Signed URLs for frontend display
   submittedBy: String # email or userId
   submittedAt: AWSDateTime!
   updatedAt: AWSDateTime!

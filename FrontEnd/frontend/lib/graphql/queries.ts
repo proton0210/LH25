@@ -31,6 +31,7 @@ export const listMyProperties = /* GraphQL */ `
         propertyType
         listingType
         images
+        imageUrls
         submittedBy
         submittedAt
         updatedAt
@@ -71,6 +72,7 @@ export const listProperties = /* GraphQL */ `
         propertyType
         listingType
         images
+        imageUrls
         submittedBy
         submittedAt
         updatedAt

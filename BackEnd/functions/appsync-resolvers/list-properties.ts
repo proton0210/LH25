@@ -1,10 +1,14 @@
 import { AppSyncResolverHandler } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const dynamoClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
+const s3Client = new S3Client({});
 const TABLE_NAME = process.env.PROPERTIES_TABLE_NAME!;
+const USER_FILES_BUCKET = process.env.USER_FILES_BUCKET_NAME!;
 
 interface PropertyFilterInput {
   city?: string;
@@ -39,6 +43,7 @@ interface Property {
   propertyType: string;
   listingType: string;
   images: string[];
+  imageUrls?: string[]; // Signed URLs for images
   submittedBy?: string;
   submittedAt: string;
   updatedAt: string;
@@ -160,11 +165,35 @@ export const handler: AppSyncResolverHandler<ListPropertiesArgs, PropertyConnect
     // Execute query
     const result = await docClient.send(new QueryCommand(queryParams));
 
-    // Clean up items
-    const items = (result.Items || []).map(item => {
+    // Clean up items and generate signed URLs
+    const items = await Promise.all((result.Items || []).map(async (item) => {
       const { pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, gsi3pk, gsi3sk, gsi4pk, gsi4sk, gsi5pk, gsi5sk, ...property } = item;
-      return property as Property;
-    });
+      
+      // Generate signed URLs for images
+      const imageUrls: string[] = [];
+      if (property.images && Array.isArray(property.images)) {
+        for (const imageKey of property.images) {
+          try {
+            const command = new GetObjectCommand({
+              Bucket: USER_FILES_BUCKET,
+              Key: imageKey,
+            });
+            const signedUrl = await getSignedUrl(s3Client, command, {
+              expiresIn: 3600, // 1 hour
+            });
+            imageUrls.push(signedUrl);
+          } catch (error) {
+            console.error(`Error generating signed URL for ${imageKey}:`, error);
+            imageUrls.push(''); // Push empty string if error
+          }
+        }
+      }
+      
+      return {
+        ...property,
+        imageUrls,
+      } as Property;
+    }));
 
     // Prepare response
     const response: PropertyConnection = {

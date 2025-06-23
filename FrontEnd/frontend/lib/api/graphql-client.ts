@@ -33,6 +33,7 @@ export interface Property {
   propertyType: PropertyType;
   listingType: ListingType;
   images: string[];
+  imageUrls?: string[];
   submittedBy?: string;
   submittedAt: string;
   updatedAt: string;

@@ -45,6 +45,8 @@ function ListingsContent() {
   const [selectedPropertyForAI, setSelectedPropertyForAI] = useState<any>(null);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{ show: boolean; executionArn?: string; message?: string }>({ show: false });
+  const [fetchedProperties, setFetchedProperties] = useState<any[]>([]);
+  const [isLoadingProperties, setIsLoadingProperties] = useState(true);
 
   // Helper function to format enum values for display
   const formatListingType = (type: string): string => {
@@ -290,6 +292,32 @@ function ListingsContent() {
     // Refresh the page to update user tier
     window.location.reload();
   };
+
+  // Fetch properties from the API
+  const fetchProperties = async () => {
+    try {
+      setIsLoadingProperties(true);
+      const response = await api.listProperties({
+        filter: {
+          status: 'ACTIVE' as any
+        },
+        limit: 20
+      });
+      
+      console.log('ListProperties Query Data:', response);
+      const properties = response?.items || [];
+      setFetchedProperties(properties);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+    } finally {
+      setIsLoadingProperties(false);
+    }
+  };
+
+  // Fetch properties on component mount
+  useEffect(() => {
+    fetchProperties();
+  }, []);
 
   // Check for upload status from URL params
   useEffect(() => {
@@ -538,14 +566,20 @@ function ListingsContent() {
 
           {/* Property Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Real Property Cards */}
-            {realProperties.map((property, index) => {
+            {/* Show loading state while fetching */}
+            {isLoadingProperties ? (
+              <div className="col-span-full flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-pink-600" />
+              </div>
+            ) : (
+              /* Merge fetched properties with dummy data */
+              [...fetchedProperties, ...realProperties].map((property, index) => {
               const imageIndex = currentImageIndex[property.id] || 0;
               return (
                 <Card key={property.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer">
                   <div className="h-48 relative group">
                     <img 
-                      src={property.images[imageIndex]} 
+                      src={(property.imageUrls && property.imageUrls[imageIndex]) || property.images[imageIndex]} 
                       alt={property.title}
                       className="w-full h-full object-cover"
                     />
@@ -560,7 +594,7 @@ function ListingsContent() {
                           e.stopPropagation();
                           setCurrentImageIndex(prev => ({
                             ...prev,
-                            [property.id]: imageIndex > 0 ? imageIndex - 1 : property.images.length - 1
+                            [property.id]: imageIndex > 0 ? imageIndex - 1 : ((property.imageUrls || property.images).length - 1)
                           }));
                         }}
                         className="ml-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
@@ -572,7 +606,7 @@ function ListingsContent() {
                           e.stopPropagation();
                           setCurrentImageIndex(prev => ({
                             ...prev,
-                            [property.id]: imageIndex < property.images.length - 1 ? imageIndex + 1 : 0
+                            [property.id]: imageIndex < (property.imageUrls || property.images).length - 1 ? imageIndex + 1 : 0
                           }));
                         }}
                         className="mr-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
@@ -583,7 +617,7 @@ function ListingsContent() {
                     
                     {/* Image indicators */}
                     <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                      {property.images.map((_, idx) => (
+                      {(property.imageUrls || property.images).map((_, idx) => (
                         <div
                           key={idx}
                           className={`h-1.5 w-1.5 rounded-full transition-colors ${
@@ -606,12 +640,12 @@ function ListingsContent() {
                       <div className="flex items-center gap-1">
                         <DollarSign className="w-5 h-5 text-green-600" />
                         <span className="text-xl font-semibold text-grey-900">
-                          {property.price.toLocaleString()}
-                          {property.listingType === 'For Rent' && '/mo'}
+                          {Number(property.price).toLocaleString()}
+                          {property.listingType === 'FOR_RENT' && '/mo'}
                         </span>
                       </div>
                       <div className="text-sm text-grey-600">
-                        {property.squareFeet.toLocaleString()} sqft
+                        {property.squareFeet ? `${Number(property.squareFeet).toLocaleString()} sqft` : 'N/A'}
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-grey-600">
@@ -685,7 +719,8 @@ function ListingsContent() {
                 </CardContent>
               </Card>
             );
-          })}
+          })
+            )}
           </div>
 
           {/* Empty State (uncomment when no properties) */}
