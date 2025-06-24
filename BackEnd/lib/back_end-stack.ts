@@ -9,6 +9,11 @@ import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as appsync from "aws-cdk-lib/aws-appsync";
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
+import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
+import * as cloudwatchActions from "aws-cdk-lib/aws-cloudwatch-actions";
+import * as sns from "aws-cdk-lib/aws-sns";
 import * as path from "path";
 
 export class BackEndStack extends cdk.Stack {
@@ -1444,6 +1449,15 @@ export class BackEndStack extends cdk.Stack {
       reportGenerationStateMachine.stateMachineArn
     );
 
+    // Add SQS queue URL to the resolver Lambda environment
+    generatePropertyReportLambda.addEnvironment(
+      "AI_PROCESSING_QUEUE_URL",
+      aiProcessingQueue.queueUrl
+    );
+
+    // Grant permission to send messages to SQS
+    aiProcessingQueue.grantSendMessages(generatePropertyReportLambda);
+
     // Create data source and resolver
     const generatePropertyReportDataSource = api.addLambdaDataSource(
       "GeneratePropertyReportDataSource",
@@ -1539,6 +1553,271 @@ export class BackEndStack extends cdk.Stack {
       fieldName: "listMyReports",
     });
 
+    // =====================================================
+    // SQS QUEUES FOR ASYNC PROCESSING
+    // =====================================================
+
+    // Create Dead Letter Queues
+    const aiProcessingDLQ = new sqs.Queue(this, "AIProcessingDLQ", {
+      queueName: "lh-ai-processing-dlq",
+      retentionPeriod: cdk.Duration.days(14),
+    });
+
+    const imageProcessingDLQ = new sqs.Queue(this, "ImageProcessingDLQ", {
+      queueName: "lh-image-processing-dlq",
+      retentionPeriod: cdk.Duration.days(14),
+    });
+
+    // Create AI Processing Queue
+    const aiProcessingQueue = new sqs.Queue(this, "AIProcessingQueue", {
+      queueName: "lh-ai-processing-queue",
+      visibilityTimeout: cdk.Duration.seconds(300), // 5 minutes for AI processing
+      messageRetentionPeriod: cdk.Duration.days(4),
+      deadLetterQueue: {
+        queue: aiProcessingDLQ,
+        maxReceiveCount: 3,
+      },
+    });
+
+    // Create Image Processing Queue
+    const imageProcessingQueue = new sqs.Queue(this, "ImageProcessingQueue", {
+      queueName: "lh-image-processing-queue",
+      visibilityTimeout: cdk.Duration.seconds(120), // 2 minutes for image processing
+      messageRetentionPeriod: cdk.Duration.days(4),
+      deadLetterQueue: {
+        queue: imageProcessingDLQ,
+        maxReceiveCount: 3,
+      },
+    });
+
+    // Create AI Processing Consumer Lambda
+    const aiProcessingConsumerLambda = new NodejsFunction(
+      this,
+      "AIProcessingConsumerLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/queue-consumers/ai-processing-consumer/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          PROPERTIES_TABLE_NAME: propertiesTable.tableName,
+          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+        },
+        timeout: cdk.Duration.seconds(300), // 5 minutes
+        memorySize: 1024,
+        reservedConcurrentExecutions: 10, // Limit concurrent executions
+      }
+    );
+
+    // Create Image Processing Consumer Lambda
+    const imageProcessingConsumerLambda = new NodejsFunction(
+      this,
+      "ImageProcessingConsumerLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/queue-consumers/image-processing-consumer/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+          nodeModules: ["sharp", "axios"],
+        },
+        environment: {
+          PROPERTIES_TABLE_NAME: propertiesTable.tableName,
+          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+        },
+        timeout: cdk.Duration.seconds(120), // 2 minutes
+        memorySize: 512,
+        reservedConcurrentExecutions: 20, // Higher concurrency for image processing
+      }
+    );
+
+    // Grant permissions to AI Processing Consumer
+    propertiesTable.grantReadWriteData(aiProcessingConsumerLambda);
+    userFilesBucket.grantReadWrite(aiProcessingConsumerLambda);
+    aiProcessingConsumerLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["bedrock:InvokeModel", "bedrock:Converse"],
+        resources: ["*"],
+      })
+    );
+
+    // Grant permissions to Image Processing Consumer
+    propertiesTable.grantReadWriteData(imageProcessingConsumerLambda);
+    userFilesBucket.grantReadWrite(imageProcessingConsumerLambda);
+
+    // Configure Lambda event sources for SQS
+    aiProcessingConsumerLambda.addEventSource(
+      new lambdaEventSources.SqsEventSource(aiProcessingQueue, {
+        batchSize: 5,
+        maxBatchingWindowInSeconds: 20,
+        reportBatchItemFailures: true,
+      })
+    );
+
+    imageProcessingConsumerLambda.addEventSource(
+      new lambdaEventSources.SqsEventSource(imageProcessingQueue, {
+        batchSize: 10,
+        maxBatchingWindowInSeconds: 10,
+        reportBatchItemFailures: true,
+      })
+    );
+
+    // Add SQS queue URL to image upload Lambda
+    uploadImagesToS3Lambda.addEnvironment(
+      "IMAGE_PROCESSING_QUEUE_URL",
+      imageProcessingQueue.queueUrl
+    );
+
+    // Grant permission to send messages to image processing queue
+    imageProcessingQueue.grantSendMessages(uploadImagesToS3Lambda);
+
+    // =====================================================
+    // CLOUDWATCH MONITORING AND ALARMS
+    // =====================================================
+
+    // Create SNS topic for alarm notifications
+    const alarmTopic = new sns.Topic(this, "QueueAlarmTopic", {
+      topicName: "lh-queue-alarms",
+      displayName: "Queue Processing Alarms",
+    });
+
+    // AI Processing Queue Alarms
+    const aiQueueDepthAlarm = new cloudwatch.Alarm(this, "AIQueueDepthAlarm", {
+      metric: aiProcessingQueue.metricApproximateNumberOfMessagesVisible(),
+      threshold: 100,
+      evaluationPeriods: 2,
+      datapointsToAlarm: 2,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: "AI Processing Queue has too many messages",
+    });
+
+    const aiQueueAgeAlarm = new cloudwatch.Alarm(this, "AIQueueAgeAlarm", {
+      metric: aiProcessingQueue.metricApproximateAgeOfOldestMessage(),
+      threshold: 600, // 10 minutes
+      evaluationPeriods: 1,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: "AI Processing Queue has old messages",
+    });
+
+    const aiDLQAlarm = new cloudwatch.Alarm(this, "AIDLQAlarm", {
+      metric: aiProcessingDLQ.metricApproximateNumberOfMessagesVisible(),
+      threshold: 1,
+      evaluationPeriods: 1,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: "AI Processing DLQ has messages",
+    });
+
+    // Image Processing Queue Alarms
+    const imageQueueDepthAlarm = new cloudwatch.Alarm(this, "ImageQueueDepthAlarm", {
+      metric: imageProcessingQueue.metricApproximateNumberOfMessagesVisible(),
+      threshold: 200,
+      evaluationPeriods: 2,
+      datapointsToAlarm: 2,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: "Image Processing Queue has too many messages",
+    });
+
+    const imageQueueAgeAlarm = new cloudwatch.Alarm(this, "ImageQueueAgeAlarm", {
+      metric: imageProcessingQueue.metricApproximateAgeOfOldestMessage(),
+      threshold: 300, // 5 minutes
+      evaluationPeriods: 1,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: "Image Processing Queue has old messages",
+    });
+
+    const imageDLQAlarm = new cloudwatch.Alarm(this, "ImageDLQAlarm", {
+      metric: imageProcessingDLQ.metricApproximateNumberOfMessagesVisible(),
+      threshold: 1,
+      evaluationPeriods: 1,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: "Image Processing DLQ has messages",
+    });
+
+    // Lambda Error Alarms
+    const aiConsumerErrorAlarm = new cloudwatch.Alarm(this, "AIConsumerErrorAlarm", {
+      metric: aiProcessingConsumerLambda.metricErrors(),
+      threshold: 5,
+      evaluationPeriods: 2,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: "AI Processing Consumer Lambda has errors",
+    });
+
+    const imageConsumerErrorAlarm = new cloudwatch.Alarm(this, "ImageConsumerErrorAlarm", {
+      metric: imageProcessingConsumerLambda.metricErrors(),
+      threshold: 10,
+      evaluationPeriods: 2,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: "Image Processing Consumer Lambda has errors",
+    });
+
+    // Add alarm actions
+    [
+      aiQueueDepthAlarm,
+      aiQueueAgeAlarm,
+      aiDLQAlarm,
+      imageQueueDepthAlarm,
+      imageQueueAgeAlarm,
+      imageDLQAlarm,
+      aiConsumerErrorAlarm,
+      imageConsumerErrorAlarm,
+    ].forEach(alarm => {
+      alarm.addAlarmAction(new cloudwatchActions.SnsAction(alarmTopic));
+    });
+
+    // Create CloudWatch Dashboard
+    const dashboard = new cloudwatch.Dashboard(this, "QueueProcessingDashboard", {
+      dashboardName: "lh-queue-processing",
+    });
+
+    dashboard.addWidgets(
+      new cloudwatch.GraphWidget({
+        title: "Queue Depths",
+        left: [
+          aiProcessingQueue.metricApproximateNumberOfMessagesVisible(),
+          imageProcessingQueue.metricApproximateNumberOfMessagesVisible(),
+        ],
+        right: [
+          aiProcessingDLQ.metricApproximateNumberOfMessagesVisible(),
+          imageProcessingDLQ.metricApproximateNumberOfMessagesVisible(),
+        ],
+      }),
+      new cloudwatch.GraphWidget({
+        title: "Message Age",
+        left: [
+          aiProcessingQueue.metricApproximateAgeOfOldestMessage(),
+          imageProcessingQueue.metricApproximateAgeOfOldestMessage(),
+        ],
+      }),
+      new cloudwatch.GraphWidget({
+        title: "Lambda Invocations",
+        left: [
+          aiProcessingConsumerLambda.metricInvocations(),
+          imageProcessingConsumerLambda.metricInvocations(),
+        ],
+      }),
+      new cloudwatch.GraphWidget({
+        title: "Lambda Errors",
+        left: [
+          aiProcessingConsumerLambda.metricErrors(),
+          imageProcessingConsumerLambda.metricErrors(),
+        ],
+      })
+    );
+
     // Outputs
     new cdk.CfnOutput(this, "UserPoolId", {
       value: userPool.userPoolId,
@@ -1631,6 +1910,37 @@ export class BackEndStack extends cdk.Stack {
     new cdk.CfnOutput(this, "PropertyUploadStateMachineArn", {
       value: propertyUploadStateMachine.stateMachineArn,
       description: "The ARN of the Property Upload Step Functions state machine",
+    });
+
+    // SQS Queue Outputs
+    new cdk.CfnOutput(this, "AIProcessingQueueUrl", {
+      value: aiProcessingQueue.queueUrl,
+      description: "The URL of the AI Processing SQS Queue",
+    });
+
+    new cdk.CfnOutput(this, "ImageProcessingQueueUrl", {
+      value: imageProcessingQueue.queueUrl,
+      description: "The URL of the Image Processing SQS Queue",
+    });
+
+    new cdk.CfnOutput(this, "AIProcessingDLQUrl", {
+      value: aiProcessingDLQ.queueUrl,
+      description: "The URL of the AI Processing Dead Letter Queue",
+    });
+
+    new cdk.CfnOutput(this, "ImageProcessingDLQUrl", {
+      value: imageProcessingDLQ.queueUrl,
+      description: "The URL of the Image Processing Dead Letter Queue",
+    });
+
+    new cdk.CfnOutput(this, "QueueAlarmTopicArn", {
+      value: alarmTopic.topicArn,
+      description: "The ARN of the SNS topic for queue alarms",
+    });
+
+    new cdk.CfnOutput(this, "CloudWatchDashboardUrl", {
+      value: `https://console.aws.amazon.com/cloudwatch/home?region=${this.region}#dashboards:name=${dashboard.dashboardName}`,
+      description: "URL to the CloudWatch Dashboard for queue monitoring",
     });
   }
 }

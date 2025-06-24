@@ -1,8 +1,11 @@
 import { S3Client, CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { ulid } from 'ulid';
 
 const s3Client = new S3Client({});
+const sqsClient = new SQSClient({ region: process.env.AWS_REGION });
 const USER_FILES_BUCKET = process.env.USER_FILES_BUCKET_NAME!;
+const IMAGE_PROCESSING_QUEUE_URL = process.env.IMAGE_PROCESSING_QUEUE_URL;
 
 interface UploadImagesEvent {
   propertyData: {
@@ -44,6 +47,53 @@ export const handler = async (
     const listingFolder = `${userFolder}/listings/${propertyId}`;
     
     console.log(`Processing ${images.length} images for ${listingFolder}`);
+
+    // If SQS queue is configured, use async processing
+    if (IMAGE_PROCESSING_QUEUE_URL) {
+      const messageBody = {
+        propertyId,
+        userId: userFolder,
+        images: images.map((img, index) => ({
+          url: img,
+          order: index
+        })),
+        tempFolder: `${userFolder}/temp`,
+        finalFolder: listingFolder
+      };
+
+      const sendMessageCommand = new SendMessageCommand({
+        QueueUrl: IMAGE_PROCESSING_QUEUE_URL,
+        MessageBody: JSON.stringify(messageBody),
+        MessageAttributes: {
+          propertyId: {
+            DataType: "String",
+            StringValue: propertyId
+          },
+          userId: {
+            DataType: "String",
+            StringValue: userFolder
+          }
+        }
+      });
+
+      await sqsClient.send(sendMessageCommand);
+      console.log(`Sent image processing message to queue for property: ${propertyId}`);
+
+      // Return success with temporary image locations
+      return {
+        success: true,
+        propertyId,
+        uploadedImages: images, // Return original images for now
+        propertyData: {
+          ...propertyData,
+          id: propertyId,
+          images: images,
+          imageProcessingStatus: 'QUEUED'
+        }
+      };
+    }
+
+    // Fallback to synchronous processing if SQS is not configured
 
     const uploadedImages: string[] = [];
 

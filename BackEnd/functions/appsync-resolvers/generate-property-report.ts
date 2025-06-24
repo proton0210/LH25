@@ -1,10 +1,12 @@
 import { AppSyncResolverHandler, AppSyncIdentityCognito } from "aws-lambda";
 import { BedrockRuntimeClient, ConverseCommand } from "@aws-sdk/client-bedrock-runtime";
 import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
+import { SQSClient, SendMessageCommand } from "@aws-sdk/client-sqs";
 import { randomUUID } from "crypto";
 
 const bedrockClient = new BedrockRuntimeClient({ region: process.env.AWS_REGION });
 const sfnClient = new SFNClient({});
+const sqsClient = new SQSClient({ region: process.env.AWS_REGION });
 
 interface GenerateReportInput {
   title: string;
@@ -160,11 +162,57 @@ export const handler: AppSyncResolverHandler<{ input: GenerateReportInput }, Pro
   const startTime = Date.now();
   const reportId = randomUUID();
   const stateMachineArn = process.env.REPORT_GENERATION_STATE_MACHINE_ARN;
+  const aiProcessingQueueUrl = process.env.AI_PROCESSING_QUEUE_URL;
   const cognitoIdentity = event.identity as AppSyncIdentityCognito;
   const userId = cognitoIdentity?.sub || cognitoIdentity?.username || "anonymous";
   
   try {
-    // If Step Functions is configured, use workflow for PDF generation
+    // If SQS queue is configured, use async processing
+    if (aiProcessingQueueUrl) {
+      const messageBody = {
+        reportId,
+        userId,
+        propertyId: `${input.address}-${Date.now()}`, // Generate a unique property ID
+        propertyData: input,
+        reportType: input.reportType,
+        timestamp: new Date().toISOString()
+      };
+
+      const sendMessageCommand = new SendMessageCommand({
+        QueueUrl: aiProcessingQueueUrl,
+        MessageBody: JSON.stringify(messageBody),
+        MessageAttributes: {
+          reportType: {
+            DataType: "String",
+            StringValue: input.reportType
+          },
+          userId: {
+            DataType: "String",
+            StringValue: userId
+          }
+        }
+      });
+
+      await sqsClient.send(sendMessageCommand);
+      console.log(`Sent AI processing message to queue for report: ${reportId}`);
+
+      // Return immediate response while processing happens asynchronously
+      return {
+        reportId,
+        reportType: input.reportType,
+        generatedAt: new Date().toISOString(),
+        content: "Report generation initiated. The PDF will be available in your Reports folder shortly.",
+        propertyTitle: input.title,
+        executiveSummary: "Report is being generated...",
+        metadata: {
+          modelUsed: "apac.anthropic.claude-3-haiku-20240307-v1:0",
+          generationTimeMs: Date.now() - startTime,
+          wordCount: 0
+        }
+      };
+    }
+    
+    // Fallback to Step Functions if SQS is not configured
     if (stateMachineArn) {
       const executionName = `report-${reportId}-${Date.now()}`;
       
