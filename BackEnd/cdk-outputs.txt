@@ -1,6 +1,7 @@
 # CDK Stack Outputs
-# Generated on: 2025-06-24T09:34:40.452Z
+# Generated on: 2025-06-24T11:04:07.237Z
 
+AdminEventBusName=lh-admin-operations-bus
 AdminGroupName=admin
 AIProcessingDLQUrl=https://sqs.ap-south-1.amazonaws.com/585768150182/lh-ai-processing-dlq
 AIProcessingQueueUrl=https://sqs.ap-south-1.amazonaws.com/585768150182/lh-ai-processing-queue
@@ -27,6 +28,7 @@ UserPoolId=ap-south-1_0KFpHhmL7
 UserTableName=lh-users
 
 # Export commands for bash (source this file to set environment variables)
+export ADMIN_EVENT_BUS_NAME="lh-admin-operations-bus"
 export ADMIN_GROUP_NAME="admin"
 export A_I_PROCESSING_D_L_Q_URL="https://sqs.ap-south-1.amazonaws.com/585768150182/lh-ai-processing-dlq"
 export A_I_PROCESSING_QUEUE_URL="https://sqs.ap-south-1.amazonaws.com/585768150182/lh-ai-processing-queue"

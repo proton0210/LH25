@@ -14,6 +14,8 @@ import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
 import * as cloudwatchActions from "aws-cdk-lib/aws-cloudwatch-actions";
 import * as sns from "aws-cdk-lib/aws-sns";
+import * as events from "aws-cdk-lib/aws-events";
+import * as eventsTargets from "aws-cdk-lib/aws-events-targets";
 import * as path from "path";
 
 export class BackEndStack extends cdk.Stack {
@@ -1816,6 +1818,112 @@ export class BackEndStack extends cdk.Stack {
       })
     );
 
+    // =====================================================
+    // EVENTBRIDGE FOR ADMIN OPERATIONS
+    // =====================================================
+
+    // Create custom event bus for admin operations
+    const adminEventBus = new events.EventBus(this, "AdminOperationsEventBus", {
+      eventBusName: "lh-admin-operations-bus",
+    });
+
+    // Grant permission to admin Lambda functions to put events
+    adminEventBus.grantPutEventsTo(approvePropertyLambda);
+    adminEventBus.grantPutEventsTo(rejectPropertyLambda);
+
+    // Add event bus name to Lambda environments
+    approvePropertyLambda.addEnvironment("ADMIN_EVENT_BUS_NAME", adminEventBus.eventBusName);
+    rejectPropertyLambda.addEnvironment("ADMIN_EVENT_BUS_NAME", adminEventBus.eventBusName);
+
+    // Create event handler Lambda functions
+    const propertyApprovedHandlerLambda = new NodejsFunction(
+      this,
+      "PropertyApprovedHandlerLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/event-handlers/property-approved-handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_TABLE_NAME: userTable.tableName,
+          RESEND_API_KEY: this.node.tryGetContext('resendApiKey') || '',
+        },
+        timeout: cdk.Duration.seconds(30),
+        memorySize: 256,
+      }
+    );
+
+    const propertyRejectedHandlerLambda = new NodejsFunction(
+      this,
+      "PropertyRejectedHandlerLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/event-handlers/property-rejected-handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          USER_TABLE_NAME: userTable.tableName,
+          RESEND_API_KEY: this.node.tryGetContext('resendApiKey') || '',
+        },
+        timeout: cdk.Duration.seconds(30),
+        memorySize: 256,
+      }
+    );
+
+    // Grant permissions to event handlers
+    userTable.grantReadData(propertyApprovedHandlerLambda);
+    userTable.grantReadData(propertyRejectedHandlerLambda);
+
+    // Create EventBridge rules
+    const propertyApprovedRule = new events.Rule(this, "PropertyApprovedRule", {
+      eventBus: adminEventBus,
+      eventPattern: {
+        source: ["lh.admin"],
+        detailType: ["Property Approved"],
+      },
+      ruleName: "property-approved-rule",
+      description: "Trigger when a property is approved",
+    });
+
+    const propertyRejectedRule = new events.Rule(this, "PropertyRejectedRule", {
+      eventBus: adminEventBus,
+      eventPattern: {
+        source: ["lh.admin"],
+        detailType: ["Property Rejected"],
+      },
+      ruleName: "property-rejected-rule",
+      description: "Trigger when a property is rejected",
+    });
+
+    // Add Lambda targets to the rules
+    propertyApprovedRule.addTarget(new eventsTargets.LambdaFunction(propertyApprovedHandlerLambda, {
+      deadLetterQueue: aiProcessingDLQ, // Reuse existing DLQ
+      maxEventAge: cdk.Duration.hours(2),
+      retryAttempts: 2,
+    }));
+
+    propertyRejectedRule.addTarget(new eventsTargets.LambdaFunction(propertyRejectedHandlerLambda, {
+      deadLetterQueue: aiProcessingDLQ, // Reuse existing DLQ
+      maxEventAge: cdk.Duration.hours(2),
+      retryAttempts: 2,
+    }));
+
     // Outputs
     new cdk.CfnOutput(this, "UserPoolId", {
       value: userPool.userPoolId,
@@ -1939,6 +2047,11 @@ export class BackEndStack extends cdk.Stack {
     new cdk.CfnOutput(this, "CloudWatchDashboardUrl", {
       value: `https://console.aws.amazon.com/cloudwatch/home?region=${this.region}#dashboards:name=${dashboard.dashboardName}`,
       description: "URL to the CloudWatch Dashboard for queue monitoring",
+    });
+
+    new cdk.CfnOutput(this, "AdminEventBusName", {
+      value: adminEventBus.eventBusName,
+      description: "The name of the EventBridge bus for admin operations",
     });
   }
 }
