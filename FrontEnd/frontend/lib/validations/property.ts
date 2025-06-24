@@ -13,11 +13,39 @@ export const propertyTypes = [
   'Commercial',
 ] as const;
 
+export const listingTypes = [
+  'FOR_SALE',
+  'FOR_RENT',
+] as const;
+
 export const propertyStatuses = [
   'ACTIVE',
   'PENDING',
   'SOLD',
   'INACTIVE',
+] as const;
+
+export const commonAmenities = [
+  'Pool',
+  'Garage',
+  'Garden',
+  'Gym',
+  'Parking',
+  'Security',
+  'Elevator',
+  'Balcony',
+  'Terrace',
+  'Storage',
+  'Laundry',
+  'Dishwasher',
+  'Air Conditioning',
+  'Heating',
+  'Fireplace',
+  'Hardwood Floors',
+  'Pet Friendly',
+  'Furnished',
+  'High Ceilings',
+  'Walk-in Closet',
 ] as const;
 
 export const states = [
@@ -69,6 +97,35 @@ export const propertySchema = z.object({
   area: z
     .number()
     .positive('Area must be a positive number')
+    .optional(),
+  
+  // Additional Property Details
+  listingType: z.enum(listingTypes, {
+    errorMap: () => ({ message: 'Please select a listing type' }),
+  }),
+  
+  amenities: z
+    .array(z.string())
+    .optional()
+    .default([]),
+  
+  yearBuilt: z
+    .number()
+    .int('Year must be a whole number')
+    .min(1800, 'Please enter a valid year')
+    .max(new Date().getFullYear() + 1, 'Year cannot be in the future')
+    .optional(),
+  
+  lotSize: z
+    .number()
+    .min(0, 'Lot size cannot be negative')
+    .optional(),
+  
+  parkingSpaces: z
+    .number()
+    .int('Parking spaces must be a whole number')
+    .min(0, 'Parking spaces cannot be negative')
+    .max(20, 'Please enter a valid number of parking spaces')
     .optional(),
   
   // Location Details

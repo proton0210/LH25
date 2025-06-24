@@ -670,6 +670,31 @@ export class BackEndStack extends cdk.Stack {
       }
     );
 
+    // Create Property Upload Consumer Lambda (after state machine is created)
+    const propertyUploadConsumerLambda = new NodejsFunction(
+      this,
+      "PropertyUploadConsumerLambda",
+      {
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: "handler",
+        entry: path.join(
+          __dirname,
+          "../functions/queue-consumers/property-upload-consumer/handler.ts"
+        ),
+        bundling: {
+          minify: true,
+          sourceMap: true,
+          sourcesContent: false,
+          target: "node20",
+        },
+        environment: {
+          PROPERTY_UPLOAD_STATE_MACHINE_ARN: propertyUploadStateMachine.stateMachineArn,
+        },
+        timeout: cdk.Duration.seconds(30), // 30 seconds is enough to trigger Step Functions
+        memorySize: 256,
+      }
+    );
+
     // Create Lambda Resolvers
     const resolverEnvironment = {
       PROPERTIES_TABLE_NAME: propertiesTable.tableName,
@@ -1556,8 +1581,8 @@ export class BackEndStack extends cdk.Stack {
       retentionPeriod: cdk.Duration.days(14),
     });
 
-    const imageProcessingDLQ = new sqs.Queue(this, "ImageProcessingDLQ", {
-      queueName: "lh-image-processing-dlq",
+    const propertyUploadDLQ = new sqs.Queue(this, "PropertyUploadDLQ", {
+      queueName: "lh-property-upload-dlq",
       retentionPeriod: cdk.Duration.days(14),
     });
 
@@ -1572,13 +1597,13 @@ export class BackEndStack extends cdk.Stack {
       },
     });
 
-    // Create Image Processing Queue
-    const imageProcessingQueue = new sqs.Queue(this, "ImageProcessingQueue", {
-      queueName: "lh-image-processing-queue",
-      visibilityTimeout: cdk.Duration.seconds(120), // 2 minutes for image processing
+    // Create Property Upload Queue
+    const propertyUploadQueue = new sqs.Queue(this, "PropertyUploadQueue", {
+      queueName: "lh-property-upload-queue",
+      visibilityTimeout: cdk.Duration.seconds(180), // 3 minutes for property upload workflow
       retentionPeriod: cdk.Duration.days(4),
       deadLetterQueue: {
-        queue: imageProcessingDLQ,
+        queue: propertyUploadDLQ,
         maxReceiveCount: 3,
       },
     });
@@ -1608,38 +1633,11 @@ export class BackEndStack extends cdk.Stack {
       }
     );
 
-    // Create Image Processing Consumer Lambda
-    const imageProcessingConsumerLambda = new NodejsFunction(
-      this,
-      "ImageProcessingConsumerLambda",
-      {
-        runtime: lambda.Runtime.NODEJS_20_X,
-        handler: "handler",
-        entry: path.join(
-          __dirname,
-          "../functions/queue-consumers/image-processing-consumer/handler.ts"
-        ),
-        bundling: {
-          minify: true,
-          sourceMap: true,
-          sourcesContent: false,
-          target: "node20",
-          nodeModules: ["axios"],
-        },
-        environment: {
-          PROPERTIES_TABLE_NAME: propertiesTable.tableName,
-          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
-        },
-        timeout: cdk.Duration.seconds(120), // 2 minutes
-        memorySize: 512,
-      }
-    );
+    // Property Upload Consumer Lambda will be created after the state machine
 
     // AI Processing Consumer only needs Step Functions permissions (granted later)
 
-    // Grant permissions to Image Processing Consumer
-    propertiesTable.grantReadWriteData(imageProcessingConsumerLambda);
-    userFilesBucket.grantReadWrite(imageProcessingConsumerLambda);
+    // Property Upload Consumer only needs Step Functions permissions (granted later)
 
     // Configure Lambda event sources for SQS
     aiProcessingConsumerLambda.addEventSource(
@@ -1650,22 +1648,15 @@ export class BackEndStack extends cdk.Stack {
       })
     );
 
-    imageProcessingConsumerLambda.addEventSource(
-      new lambdaEventSources.SqsEventSource(imageProcessingQueue, {
-        batchSize: 10,
-        maxBatchingWindow: cdk.Duration.seconds(10),
+    propertyUploadConsumerLambda.addEventSource(
+      new lambdaEventSources.SqsEventSource(propertyUploadQueue, {
+        batchSize: 5,
+        maxBatchingWindow: cdk.Duration.seconds(20),
         reportBatchItemFailures: true,
       })
     );
 
-    // Add SQS queue URL to image upload Lambda
-    uploadImagesToS3Lambda.addEnvironment(
-      "IMAGE_PROCESSING_QUEUE_URL",
-      imageProcessingQueue.queueUrl
-    );
-
-    // Grant permission to send messages to image processing queue
-    imageProcessingQueue.grantSendMessages(uploadImagesToS3Lambda);
+    // Remove SQS dependency from upload images Lambda - it will process synchronously
 
     // Add SQS queue URL to the AI report generation Lambda environment
     generatePropertyReportLambda.addEnvironment(
@@ -1676,14 +1667,24 @@ export class BackEndStack extends cdk.Stack {
     // Grant permission to send messages to AI processing queue
     aiProcessingQueue.grantSendMessages(generatePropertyReportLambda);
 
-    // Grant Step Functions permission to the AI Processing Consumer Lambda
+    // Grant Step Functions permission to the consumer Lambdas
     reportGenerationStateMachine.grantStartExecution(aiProcessingConsumerLambda);
+    propertyUploadStateMachine.grantStartExecution(propertyUploadConsumerLambda);
     
     // Add state machine ARN to the AI Processing Consumer Lambda environment
     aiProcessingConsumerLambda.addEnvironment(
       "REPORT_GENERATION_STATE_MACHINE_ARN",
       reportGenerationStateMachine.stateMachineArn
     );
+    
+    // Add SQS queue URL to the create property Lambda environment
+    createPropertyLambda.addEnvironment(
+      "PROPERTY_UPLOAD_QUEUE_URL",
+      propertyUploadQueue.queueUrl
+    );
+    
+    // Grant permission to send messages to property upload queue
+    propertyUploadQueue.grantSendMessages(createPropertyLambda);
 
     // =====================================================
     // CLOUDWATCH MONITORING AND ALARMS
@@ -1721,30 +1722,30 @@ export class BackEndStack extends cdk.Stack {
       alarmDescription: "AI Processing DLQ has messages",
     });
 
-    // Image Processing Queue Alarms
-    const imageQueueDepthAlarm = new cloudwatch.Alarm(this, "ImageQueueDepthAlarm", {
-      metric: imageProcessingQueue.metricApproximateNumberOfMessagesVisible(),
-      threshold: 200,
+    // Property Upload Queue Alarms
+    const propertyUploadQueueDepthAlarm = new cloudwatch.Alarm(this, "PropertyUploadQueueDepthAlarm", {
+      metric: propertyUploadQueue.metricApproximateNumberOfMessagesVisible(),
+      threshold: 100,
       evaluationPeriods: 2,
       datapointsToAlarm: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-      alarmDescription: "Image Processing Queue has too many messages",
+      alarmDescription: "Property Upload Queue has too many messages",
     });
 
-    const imageQueueAgeAlarm = new cloudwatch.Alarm(this, "ImageQueueAgeAlarm", {
-      metric: imageProcessingQueue.metricApproximateAgeOfOldestMessage(),
+    const propertyUploadQueueAgeAlarm = new cloudwatch.Alarm(this, "PropertyUploadQueueAgeAlarm", {
+      metric: propertyUploadQueue.metricApproximateAgeOfOldestMessage(),
       threshold: 300, // 5 minutes
       evaluationPeriods: 1,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-      alarmDescription: "Image Processing Queue has old messages",
+      alarmDescription: "Property Upload Queue has old messages",
     });
 
-    const imageDLQAlarm = new cloudwatch.Alarm(this, "ImageDLQAlarm", {
-      metric: imageProcessingDLQ.metricApproximateNumberOfMessagesVisible(),
+    const propertyUploadDLQAlarm = new cloudwatch.Alarm(this, "PropertyUploadDLQAlarm", {
+      metric: propertyUploadDLQ.metricApproximateNumberOfMessagesVisible(),
       threshold: 1,
       evaluationPeriods: 1,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-      alarmDescription: "Image Processing DLQ has messages",
+      alarmDescription: "Property Upload DLQ has messages",
     });
 
     // Lambda Error Alarms
@@ -1756,12 +1757,12 @@ export class BackEndStack extends cdk.Stack {
       alarmDescription: "AI Processing Consumer Lambda has errors (triggers Step Functions)",
     });
 
-    const imageConsumerErrorAlarm = new cloudwatch.Alarm(this, "ImageConsumerErrorAlarm", {
-      metric: imageProcessingConsumerLambda.metricErrors(),
-      threshold: 10,
+    const propertyUploadConsumerErrorAlarm = new cloudwatch.Alarm(this, "PropertyUploadConsumerErrorAlarm", {
+      metric: propertyUploadConsumerLambda.metricErrors(),
+      threshold: 5,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-      alarmDescription: "Image Processing Consumer Lambda has errors",
+      alarmDescription: "Property Upload Consumer Lambda has errors (triggers Step Functions)",
     });
 
     // Add alarm actions
@@ -1769,11 +1770,11 @@ export class BackEndStack extends cdk.Stack {
       aiQueueDepthAlarm,
       aiQueueAgeAlarm,
       aiDLQAlarm,
-      imageQueueDepthAlarm,
-      imageQueueAgeAlarm,
-      imageDLQAlarm,
+      propertyUploadQueueDepthAlarm,
+      propertyUploadQueueAgeAlarm,
+      propertyUploadDLQAlarm,
       aiConsumerErrorAlarm,
-      imageConsumerErrorAlarm,
+      propertyUploadConsumerErrorAlarm,
     ].forEach(alarm => {
       alarm.addAlarmAction(new cloudwatchActions.SnsAction(alarmTopic));
     });
@@ -1788,32 +1789,32 @@ export class BackEndStack extends cdk.Stack {
         title: "Queue Depths",
         left: [
           aiProcessingQueue.metricApproximateNumberOfMessagesVisible(),
-          imageProcessingQueue.metricApproximateNumberOfMessagesVisible(),
+          propertyUploadQueue.metricApproximateNumberOfMessagesVisible(),
         ],
         right: [
           aiProcessingDLQ.metricApproximateNumberOfMessagesVisible(),
-          imageProcessingDLQ.metricApproximateNumberOfMessagesVisible(),
+          propertyUploadDLQ.metricApproximateNumberOfMessagesVisible(),
         ],
       }),
       new cloudwatch.GraphWidget({
         title: "Message Age",
         left: [
           aiProcessingQueue.metricApproximateAgeOfOldestMessage(),
-          imageProcessingQueue.metricApproximateAgeOfOldestMessage(),
+          propertyUploadQueue.metricApproximateAgeOfOldestMessage(),
         ],
       }),
       new cloudwatch.GraphWidget({
         title: "Lambda Invocations",
         left: [
           aiProcessingConsumerLambda.metricInvocations(),
-          imageProcessingConsumerLambda.metricInvocations(),
+          propertyUploadConsumerLambda.metricInvocations(),
         ],
       }),
       new cloudwatch.GraphWidget({
         title: "Lambda Errors",
         left: [
           aiProcessingConsumerLambda.metricErrors(),
-          imageProcessingConsumerLambda.metricErrors(),
+          propertyUploadConsumerLambda.metricErrors(),
         ],
       })
     );
@@ -2024,9 +2025,9 @@ export class BackEndStack extends cdk.Stack {
       description: "The URL of the AI Processing SQS Queue",
     });
 
-    new cdk.CfnOutput(this, "ImageProcessingQueueUrl", {
-      value: imageProcessingQueue.queueUrl,
-      description: "The URL of the Image Processing SQS Queue",
+    new cdk.CfnOutput(this, "PropertyUploadQueueUrl", {
+      value: propertyUploadQueue.queueUrl,
+      description: "The URL of the Property Upload SQS Queue",
     });
 
     new cdk.CfnOutput(this, "AIProcessingDLQUrl", {
@@ -2034,9 +2035,9 @@ export class BackEndStack extends cdk.Stack {
       description: "The URL of the AI Processing Dead Letter Queue",
     });
 
-    new cdk.CfnOutput(this, "ImageProcessingDLQUrl", {
-      value: imageProcessingDLQ.queueUrl,
-      description: "The URL of the Image Processing Dead Letter Queue",
+    new cdk.CfnOutput(this, "PropertyUploadDLQUrl", {
+      value: propertyUploadDLQ.queueUrl,
+      description: "The URL of the Property Upload Dead Letter Queue",
     });
 
     new cdk.CfnOutput(this, "QueueAlarmTopicArn", {

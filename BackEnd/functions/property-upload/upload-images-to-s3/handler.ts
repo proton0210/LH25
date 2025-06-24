@@ -1,17 +1,15 @@
 import { S3Client, CopyObjectCommand, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
 import { ulid } from 'ulid';
 
 const s3Client = new S3Client({});
-const sqsClient = new SQSClient({ region: process.env.AWS_REGION });
 const USER_FILES_BUCKET = process.env.USER_FILES_BUCKET_NAME!;
-const IMAGE_PROCESSING_QUEUE_URL = process.env.IMAGE_PROCESSING_QUEUE_URL;
 
 interface UploadImagesEvent {
   propertyData: {
     images: string[]; // Array of S3 keys from temporary uploads
     userId?: string;
     cognitoUserId?: string;
+    propertyId?: string; // Property ID from the queue message
     [key: string]: any;
   };
 }
@@ -31,14 +29,14 @@ export const handler = async (
 
   try {
     const { propertyData } = event;
-    const { images, userId, cognitoUserId } = propertyData;
+    const { images, userId, cognitoUserId, propertyId: existingPropertyId } = propertyData;
 
     if (!images || images.length === 0) {
       throw new Error('No images provided for upload');
     }
 
-    // Generate property ID
-    const propertyId = ulid();
+    // Use existing property ID or generate new one
+    const propertyId = existingPropertyId || ulid();
     
     // Determine user identifier - userId is the actual folder name created during signup
     const userFolder = userId || 'anonymous';
@@ -48,52 +46,7 @@ export const handler = async (
     
     console.log(`Processing ${images.length} images for ${listingFolder}`);
 
-    // If SQS queue is configured, use async processing
-    if (IMAGE_PROCESSING_QUEUE_URL) {
-      const messageBody = {
-        propertyId,
-        userId: userFolder,
-        images: images.map((img, index) => ({
-          url: img,
-          order: index
-        })),
-        tempFolder: `${userFolder}/temp`,
-        finalFolder: listingFolder
-      };
-
-      const sendMessageCommand = new SendMessageCommand({
-        QueueUrl: IMAGE_PROCESSING_QUEUE_URL,
-        MessageBody: JSON.stringify(messageBody),
-        MessageAttributes: {
-          propertyId: {
-            DataType: "String",
-            StringValue: propertyId
-          },
-          userId: {
-            DataType: "String",
-            StringValue: userFolder
-          }
-        }
-      });
-
-      await sqsClient.send(sendMessageCommand);
-      console.log(`Sent image processing message to queue for property: ${propertyId}`);
-
-      // Return success with temporary image locations
-      return {
-        success: true,
-        propertyId,
-        uploadedImages: images, // Return original images for now
-        propertyData: {
-          ...propertyData,
-          id: propertyId,
-          images: images,
-          imageProcessingStatus: 'QUEUED'
-        }
-      };
-    }
-
-    // Fallback to synchronous processing if SQS is not configured
+    // Always process images synchronously within Step Functions
 
     const uploadedImages: string[] = [];
 

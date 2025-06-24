@@ -1,5 +1,5 @@
 # CDK Stack Outputs
-# Generated on: 2025-06-24T11:04:07.237Z
+# Generated on: 2025-06-24T17:20:43.144Z
 
 AdminEventBusName=lh-admin-operations-bus
 AdminGroupName=admin
@@ -8,12 +8,12 @@ AIProcessingQueueUrl=https://sqs.ap-south-1.amazonaws.com/585768150182/lh-ai-pro
 CloudWatchDashboardUrl=https://console.aws.amazon.com/cloudwatch/home?region=ap-south-1#dashboards:name=lh-queue-processing
 GraphQLApiId=iivw24s5xffwjbtrkke2qfnlaq
 GraphQLApiUrl=https://tczunefzunff3eu6uie2egfdqq.appsync-api.ap-south-1.amazonaws.com/graphql
-ImageProcessingDLQUrl=https://sqs.ap-south-1.amazonaws.com/585768150182/lh-image-processing-dlq
-ImageProcessingQueueUrl=https://sqs.ap-south-1.amazonaws.com/585768150182/lh-image-processing-queue
 PaidGroupName=paid
 PostConfirmationLambdaArn=arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostConfirmationLambdaC4F60401-J2ZDyJ1DyHxF
 PropertiesTableName=lh-properties
 PropertyImagesBucketName=lh-property-images-585768150182-ap-south-1
+PropertyUploadDLQUrl=https://sqs.ap-south-1.amazonaws.com/585768150182/lh-property-upload-dlq
+PropertyUploadQueueUrl=https://sqs.ap-south-1.amazonaws.com/585768150182/lh-property-upload-queue
 PropertyUploadStateMachineArn=arn:aws:states:ap-south-1:585768150182:stateMachine:property-upload-workflow
 QueueAlarmTopicArn=arn:aws:sns:ap-south-1:585768150182:lh-queue-alarms
 ReportGenerationStateMachineArn=arn:aws:states:ap-south-1:585768150182:stateMachine:property-report-generation-workflow
@@ -35,12 +35,12 @@ export A_I_PROCESSING_QUEUE_URL="https://sqs.ap-south-1.amazonaws.com/5857681501
 export CLOUD_WATCH_DASHBOARD_URL="https://console.aws.amazon.com/cloudwatch/home?region=ap-south-1#dashboards:name=lh-queue-processing"
 export GRAPH_Q_L_API_ID="iivw24s5xffwjbtrkke2qfnlaq"
 export GRAPH_Q_L_API_URL="https://tczunefzunff3eu6uie2egfdqq.appsync-api.ap-south-1.amazonaws.com/graphql"
-export IMAGE_PROCESSING_D_L_Q_URL="https://sqs.ap-south-1.amazonaws.com/585768150182/lh-image-processing-dlq"
-export IMAGE_PROCESSING_QUEUE_URL="https://sqs.ap-south-1.amazonaws.com/585768150182/lh-image-processing-queue"
 export PAID_GROUP_NAME="paid"
 export POST_CONFIRMATION_LAMBDA_ARN="arn:aws:lambda:ap-south-1:585768150182:function:BackEndStack-PostConfirmationLambdaC4F60401-J2ZDyJ1DyHxF"
 export PROPERTIES_TABLE_NAME="lh-properties"
 export PROPERTY_IMAGES_BUCKET_NAME="lh-property-images-585768150182-ap-south-1"
+export PROPERTY_UPLOAD_D_L_Q_URL="https://sqs.ap-south-1.amazonaws.com/585768150182/lh-property-upload-dlq"
+export PROPERTY_UPLOAD_QUEUE_URL="https://sqs.ap-south-1.amazonaws.com/585768150182/lh-property-upload-queue"
 export PROPERTY_UPLOAD_STATE_MACHINE_ARN="arn:aws:states:ap-south-1:585768150182:stateMachine:property-upload-workflow"
 export QUEUE_ALARM_TOPIC_ARN="arn:aws:sns:ap-south-1:585768150182:lh-queue-alarms"
 export REPORT_GENERATION_STATE_MACHINE_ARN="arn:aws:states:ap-south-1:585768150182:stateMachine:property-report-generation-workflow"

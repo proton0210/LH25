@@ -190,9 +190,9 @@ type ReportStatus {
 }
 
 type PropertyUploadResponse {
-  executionArn: String!
-  startDate: String!
+  propertyId: String!
   message: String!
+  queueMessageId: String
 }
 
 type Mutation {

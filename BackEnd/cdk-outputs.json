@@ -1,6 +1,5 @@
 {
   "BackEndStack": {
-    "ImageProcessingDLQUrl": "https://sqs.ap-south-1.amazonaws.com/585768150182/lh-image-processing-dlq",
     "PropertyUploadStateMachineArn": "arn:aws:states:ap-south-1:585768150182:stateMachine:property-upload-workflow",
     "UpgradeUserStateMachineArn": "arn:aws:states:ap-south-1:585768150182:stateMachine:upgrade-user-to-paid-workflow",
     "UserFilesBucketName": "lh-user-files-585768150182-ap-south-1",
@@ -13,9 +12,9 @@
     "PaidGroupName": "paid",
     "PropertyImagesBucketName": "lh-property-images-585768150182-ap-south-1",
     "ResendConfigurationNote": "Remember to add your domain to Resend and configure your Resend API key",
-    "ImageProcessingQueueUrl": "https://sqs.ap-south-1.amazonaws.com/585768150182/lh-image-processing-queue",
     "AIProcessingQueueUrl": "https://sqs.ap-south-1.amazonaws.com/585768150182/lh-ai-processing-queue",
     "GraphQLApiId": "iivw24s5xffwjbtrkke2qfnlaq",
+    "PropertyUploadQueueUrl": "https://sqs.ap-south-1.amazonaws.com/585768150182/lh-property-upload-queue",
     "UserTableName": "lh-users",
     "UserPoolClientId": "5b91j4jdmcu7bfqmmberf3udfm",
     "UserPoolId": "ap-south-1_0KFpHhmL7",
@@ -23,6 +22,7 @@
     "UserGroupName": "user",
     "GraphQLApiUrl": "https://tczunefzunff3eu6uie2egfdqq.appsync-api.ap-south-1.amazonaws.com/graphql",
     "PropertiesTableName": "lh-properties",
+    "PropertyUploadDLQUrl": "https://sqs.ap-south-1.amazonaws.com/585768150182/lh-property-upload-dlq",
     "AdminEventBusName": "lh-admin-operations-bus",
     "AIProcessingDLQUrl": "https://sqs.ap-south-1.amazonaws.com/585768150182/lh-ai-processing-dlq"
   }
