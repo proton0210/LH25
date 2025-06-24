@@ -30,7 +30,7 @@ import { format } from 'date-fns';
 import { useState, useEffect, Suspense } from 'react';
 import { api } from '@/lib/api/graphql-client';
 import { PaymentModal } from '@/components/payment/payment-modal';
-import { AIInsightsModal } from '@/components/property/ai-insights-modal';
+import { AIProcessingModal } from '@/components/property/ai-processing-modal';
 import { useSearchParams } from 'next/navigation';
 
 function ListingsContent() {
@@ -43,7 +43,7 @@ function ListingsContent() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
   const [selectedPropertyForAI, setSelectedPropertyForAI] = useState<any>(null);
-  const [showAIInsights, setShowAIInsights] = useState(false);
+  const [showAIProcessing, setShowAIProcessing] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<{ show: boolean; executionArn?: string; message?: string }>({ show: false });
   const [fetchedProperties, setFetchedProperties] = useState<any[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
@@ -706,7 +706,7 @@ function ListingsContent() {
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedPropertyForAI(property);
-                            setShowAIInsights(true);
+                            setShowAIProcessing(true);
                           }}
                           className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                         >
@@ -748,14 +748,13 @@ function ListingsContent() {
         />
       )}
 
-      {/* AI Insights Modal */}
-      <AIInsightsModal
-        isOpen={showAIInsights}
+      {/* AI Processing Modal */}
+      <AIProcessingModal
+        isOpen={showAIProcessing}
         onClose={() => {
-          setShowAIInsights(false);
+          setShowAIProcessing(false);
           setSelectedPropertyForAI(null);
         }}
-        property={selectedPropertyForAI}
       />
     </ProtectedRoute>
   );

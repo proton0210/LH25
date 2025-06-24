@@ -1449,15 +1449,6 @@ export class BackEndStack extends cdk.Stack {
       reportGenerationStateMachine.stateMachineArn
     );
 
-    // Add SQS queue URL to the resolver Lambda environment
-    generatePropertyReportLambda.addEnvironment(
-      "AI_PROCESSING_QUEUE_URL",
-      aiProcessingQueue.queueUrl
-    );
-
-    // Grant permission to send messages to SQS
-    aiProcessingQueue.grantSendMessages(generatePropertyReportLambda);
-
     // Create data source and resolver
     const generatePropertyReportDataSource = api.addLambdaDataSource(
       "GeneratePropertyReportDataSource",
@@ -1572,7 +1563,7 @@ export class BackEndStack extends cdk.Stack {
     const aiProcessingQueue = new sqs.Queue(this, "AIProcessingQueue", {
       queueName: "lh-ai-processing-queue",
       visibilityTimeout: cdk.Duration.seconds(300), // 5 minutes for AI processing
-      messageRetentionPeriod: cdk.Duration.days(4),
+      retentionPeriod: cdk.Duration.days(4),
       deadLetterQueue: {
         queue: aiProcessingDLQ,
         maxReceiveCount: 3,
@@ -1583,7 +1574,7 @@ export class BackEndStack extends cdk.Stack {
     const imageProcessingQueue = new sqs.Queue(this, "ImageProcessingQueue", {
       queueName: "lh-image-processing-queue",
       visibilityTimeout: cdk.Duration.seconds(120), // 2 minutes for image processing
-      messageRetentionPeriod: cdk.Duration.days(4),
+      retentionPeriod: cdk.Duration.days(4),
       deadLetterQueue: {
         queue: imageProcessingDLQ,
         maxReceiveCount: 3,
@@ -1608,12 +1599,10 @@ export class BackEndStack extends cdk.Stack {
           target: "node20",
         },
         environment: {
-          PROPERTIES_TABLE_NAME: propertiesTable.tableName,
-          USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+          // Environment variables will be added later
         },
-        timeout: cdk.Duration.seconds(300), // 5 minutes
-        memorySize: 1024,
-        reservedConcurrentExecutions: 10, // Limit concurrent executions
+        timeout: cdk.Duration.seconds(30), // 30 seconds is enough to trigger Step Functions
+        memorySize: 256, // Reduced memory since we're just triggering Step Functions
       }
     );
 
@@ -1633,7 +1622,7 @@ export class BackEndStack extends cdk.Stack {
           sourceMap: true,
           sourcesContent: false,
           target: "node20",
-          nodeModules: ["sharp", "axios"],
+          nodeModules: ["axios"],
         },
         environment: {
           PROPERTIES_TABLE_NAME: propertiesTable.tableName,
@@ -1641,19 +1630,10 @@ export class BackEndStack extends cdk.Stack {
         },
         timeout: cdk.Duration.seconds(120), // 2 minutes
         memorySize: 512,
-        reservedConcurrentExecutions: 20, // Higher concurrency for image processing
       }
     );
 
-    // Grant permissions to AI Processing Consumer
-    propertiesTable.grantReadWriteData(aiProcessingConsumerLambda);
-    userFilesBucket.grantReadWrite(aiProcessingConsumerLambda);
-    aiProcessingConsumerLambda.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["bedrock:InvokeModel", "bedrock:Converse"],
-        resources: ["*"],
-      })
-    );
+    // AI Processing Consumer only needs Step Functions permissions (granted later)
 
     // Grant permissions to Image Processing Consumer
     propertiesTable.grantReadWriteData(imageProcessingConsumerLambda);
@@ -1663,7 +1643,7 @@ export class BackEndStack extends cdk.Stack {
     aiProcessingConsumerLambda.addEventSource(
       new lambdaEventSources.SqsEventSource(aiProcessingQueue, {
         batchSize: 5,
-        maxBatchingWindowInSeconds: 20,
+        maxBatchingWindow: cdk.Duration.seconds(20),
         reportBatchItemFailures: true,
       })
     );
@@ -1671,7 +1651,7 @@ export class BackEndStack extends cdk.Stack {
     imageProcessingConsumerLambda.addEventSource(
       new lambdaEventSources.SqsEventSource(imageProcessingQueue, {
         batchSize: 10,
-        maxBatchingWindowInSeconds: 10,
+        maxBatchingWindow: cdk.Duration.seconds(10),
         reportBatchItemFailures: true,
       })
     );
@@ -1684,6 +1664,24 @@ export class BackEndStack extends cdk.Stack {
 
     // Grant permission to send messages to image processing queue
     imageProcessingQueue.grantSendMessages(uploadImagesToS3Lambda);
+
+    // Add SQS queue URL to the AI report generation Lambda environment
+    generatePropertyReportLambda.addEnvironment(
+      "AI_PROCESSING_QUEUE_URL",
+      aiProcessingQueue.queueUrl
+    );
+
+    // Grant permission to send messages to AI processing queue
+    aiProcessingQueue.grantSendMessages(generatePropertyReportLambda);
+
+    // Grant Step Functions permission to the AI Processing Consumer Lambda
+    reportGenerationStateMachine.grantStartExecution(aiProcessingConsumerLambda);
+    
+    // Add state machine ARN to the AI Processing Consumer Lambda environment
+    aiProcessingConsumerLambda.addEnvironment(
+      "REPORT_GENERATION_STATE_MACHINE_ARN",
+      reportGenerationStateMachine.stateMachineArn
+    );
 
     // =====================================================
     // CLOUDWATCH MONITORING AND ALARMS
@@ -1753,7 +1751,7 @@ export class BackEndStack extends cdk.Stack {
       threshold: 5,
       evaluationPeriods: 2,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
-      alarmDescription: "AI Processing Consumer Lambda has errors",
+      alarmDescription: "AI Processing Consumer Lambda has errors (triggers Step Functions)",
     });
 
     const imageConsumerErrorAlarm = new cloudwatch.Alarm(this, "ImageConsumerErrorAlarm", {

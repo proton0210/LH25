@@ -2,7 +2,6 @@ import { SQSHandler, SQSEvent } from 'aws-lambda';
 import { S3Client, PutObjectCommand, GetObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3';
 import { DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import axios from 'axios';
-import sharp from 'sharp';
 
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 const dynamoClient = new DynamoDBClient({ region: process.env.AWS_REGION });
@@ -71,51 +70,28 @@ async function processImage(
     });
 
     const imageBuffer = Buffer.from(response.data);
+    const contentType = response.headers['content-type'] || 'image/jpeg';
 
-    // Process image with sharp (resize, optimize)
-    const processedBuffer = await sharp(imageBuffer)
-      .resize(1920, 1080, {
-        fit: 'inside',
-        withoutEnlargement: true,
-      })
-      .jpeg({ quality: 85, progressive: true })
-      .toBuffer();
+    // Determine file extension from content type
+    let fileExtension = 'jpg';
+    if (contentType.includes('png')) fileExtension = 'png';
+    else if (contentType.includes('gif')) fileExtension = 'gif';
+    else if (contentType.includes('webp')) fileExtension = 'webp';
+    else if (contentType.includes('svg')) fileExtension = 'svg';
 
-    // Generate thumbnail
-    const thumbnailBuffer = await sharp(imageBuffer)
-      .resize(400, 300, {
-        fit: 'cover',
-      })
-      .jpeg({ quality: 70 })
-      .toBuffer();
-
-    // Save processed image to S3
+    // Save original image to S3
     const timestamp = Date.now();
-    const imageKey = `${message.tempFolder}/image_${index}_${timestamp}.jpg`;
-    const thumbnailKey = `${message.tempFolder}/thumb_${index}_${timestamp}.jpg`;
+    const imageKey = `${message.finalFolder}/image_${index}_${timestamp}.${fileExtension}`;
 
     await s3Client.send(new PutObjectCommand({
       Bucket: process.env.USER_FILES_BUCKET_NAME!,
       Key: imageKey,
-      Body: processedBuffer,
-      ContentType: 'image/jpeg',
+      Body: imageBuffer,
+      ContentType: contentType,
       Metadata: {
         propertyId: message.propertyId,
         caption: image.caption || '',
         order: String(image.order || index),
-      },
-    }));
-
-    await s3Client.send(new PutObjectCommand({
-      Bucket: process.env.USER_FILES_BUCKET_NAME!,
-      Key: thumbnailKey,
-      Body: thumbnailBuffer,
-      ContentType: 'image/jpeg',
-      Metadata: {
-        propertyId: message.propertyId,
-        caption: image.caption || '',
-        order: String(image.order || index),
-        isThumbnail: 'true',
       },
     }));
 

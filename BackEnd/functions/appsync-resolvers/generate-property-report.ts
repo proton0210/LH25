@@ -172,10 +172,8 @@ export const handler: AppSyncResolverHandler<{ input: GenerateReportInput }, Pro
       const messageBody = {
         reportId,
         userId,
-        propertyId: `${input.address}-${Date.now()}`, // Generate a unique property ID
-        propertyData: input,
-        reportType: input.reportType,
-        timestamp: new Date().toISOString()
+        cognitoUserId: input.cognitoUserId || cognitoIdentity?.username,
+        input
       };
 
       const sendMessageCommand = new SendMessageCommand({
@@ -208,11 +206,14 @@ export const handler: AppSyncResolverHandler<{ input: GenerateReportInput }, Pro
           modelUsed: "apac.anthropic.claude-3-haiku-20240307-v1:0",
           generationTimeMs: Date.now() - startTime,
           wordCount: 0
-        }
+        },
+        signedUrl: undefined,
+        s3Key: undefined,
+        executionArn: undefined
       };
     }
     
-    // Fallback to Step Functions if SQS is not configured
+    // Fallback to direct Step Functions if SQS is not configured
     if (stateMachineArn) {
       const executionName = `report-${reportId}-${Date.now()}`;
       
