@@ -27,6 +27,7 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
 
   useEffect(() => {
     if (isOpen && property) {
+      console.log('AI Insights Modal opened with property:', property);
       setError(null);
       setReportUrl(null);
       setExecutionArn(null);
@@ -113,16 +114,21 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
         authMode: 'userPool',
       });
       
+      console.log('GeneratePropertyReport response:', response);
+      
       if ('data' in response && response.data.generatePropertyReport) {
         const report = response.data.generatePropertyReport;
+        console.log('Report data:', report);
         
         // If we have a signed URL immediately, use it
         if (report.signedUrl) {
+          console.log('Received immediate signed URL:', report.signedUrl);
           setReportUrl(report.signedUrl);
           setIsGenerating(false);
         } 
         // Otherwise, start polling for report status
         else if (report.executionArn) {
+          console.log('Received execution ARN, starting polling:', report.executionArn);
           setExecutionArn(report.executionArn);
           setGenerationPhase('Starting comprehensive analysis...');
           startPolling(report.executionArn);
@@ -190,10 +196,14 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
           authMode: 'userPool',
         });
         
+        console.log(`Polling attempt ${pollCount} - Status response:`, statusResponse);
+        
         if ('data' in statusResponse && statusResponse.data.getReportStatus) {
           const status = statusResponse.data.getReportStatus;
+          console.log('Report status:', status.status);
           
           if ((status.status === 'SUCCEEDED' || status.status === 'COMPLETED') && status.signedUrl) {
+            console.log('Report generation succeeded! URL:', status.signedUrl);
             setReportUrl(status.signedUrl);
             setIsGenerating(false);
             clearInterval(messageInterval);
@@ -201,6 +211,7 @@ export function AIInsightsModal({ isOpen, onClose, property }: AIInsightsModalPr
               clearInterval(pollingInterval.current);
             }
           } else if (status.status === 'FAILED') {
+            console.error('Report generation failed:', status.error);
             setError(status.error || 'Report generation failed');
             setIsGenerating(false);
             clearInterval(messageInterval);

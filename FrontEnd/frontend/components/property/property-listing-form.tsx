@@ -146,7 +146,8 @@ export function PropertyListingForm() {
     {
       title: 'Luxury Beachfront Villa with Private Access',
       description: 'Escape to paradise in this exquisite 5-bedroom beachfront villa. Features include panoramic ocean views from every room, chef\'s kitchen with high-end appliances, master suite with spa-like bathroom and private balcony, infinity pool overlooking the beach, and direct beach access via private stairs. The property includes smart home technology, hurricane-impact windows, whole-house generator, and a separate guest house. Perfect for vacation rental investment or primary residence.',
-      propertyType: 'House',
+      propertyType: 'Single Family',
+      listingType: 'For Sale',
       price: 2850000,
       bedrooms: 5,
       bathrooms: 4.5,
@@ -158,6 +159,10 @@ export function PropertyListingForm() {
       contactName: 'Carlos Martinez',
       contactEmail: 'cmartinez@beachfrontestates.com',
       contactPhone: '(305) 555-9876',
+      amenities: ['Beach Access', 'Pool', 'Smart Home', 'Guest House', 'Generator'],
+      yearBuilt: 2019,
+      lotSize: 0.5,
+      parkingSpaces: 3,
       images: [
         'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
         'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=800&h=600&fit=crop',
@@ -168,7 +173,8 @@ export function PropertyListingForm() {
     {
       title: 'Mountain Retreat Cabin with Spectacular Views',
       description: 'Rustic luxury meets modern comfort in this stunning 3-bedroom log cabin. Nestled on 5 acres of private forest, features include vaulted ceilings with exposed beams, stone fireplace, gourmet kitchen with custom cabinetry, wraparound deck with hot tub, and floor-to-ceiling windows showcasing mountain views. Property includes hiking trails, seasonal creek, detached workshop/garage, and is minutes from ski resorts. Fully furnished and turn-key ready.',
-      propertyType: 'House',
+      propertyType: 'Single Family',
+      listingType: 'For Sale',
       price: 675000,
       bedrooms: 3,
       bathrooms: 2.5,
@@ -191,6 +197,7 @@ export function PropertyListingForm() {
       title: 'Urban Loft in Converted Warehouse District',
       description: 'Industrial chic at its finest in this spectacular 2-bedroom + den loft. Original features include 14-foot ceilings, exposed brick walls, oversized windows, and polished concrete floors. Modern updates feature open kitchen with island, spa-inspired bathrooms, custom closets, and in-unit laundry. Building offers rooftop garden, gym, co-working spaces, and pet spa. Walk to trendy restaurants, galleries, and public transit. Live/work permitted.',
       propertyType: 'Condo',
+      listingType: 'For Rent',
       price: 3200,
       bedrooms: 2,
       bathrooms: 2,
@@ -212,7 +219,8 @@ export function PropertyListingForm() {
     {
       title: 'Elegant Brownstone in Prime Location',
       description: 'Meticulously restored 1890s brownstone offering 4 floors of luxury living. Original details preserved including ornate moldings, marble fireplaces, and herringbone floors. Modern amenities include chef\'s kitchen with butler\'s pantry, luxurious master suite with dressing room, home theater, wine cellar, and private garden with outdoor kitchen. Located on tree-lined street near parks, museums, and top schools. Rare opportunity for sophisticated city living.',
-      propertyType: 'House',
+      propertyType: 'Single Family',
+      listingType: 'For Sale',
       price: 3750000,
       bedrooms: 5,
       bathrooms: 4,
@@ -234,7 +242,8 @@ export function PropertyListingForm() {
     {
       title: 'Golf Course Estate with Resort Amenities',
       description: 'Prestigious estate home on the 9th fairway offering panoramic golf course and mountain views. This 6-bedroom masterpiece features grand foyer with dual staircases, formal living and dining rooms, gourmet kitchen with commercial appliances, temperature-controlled wine room, home office with built-ins, game room with wet bar, and resort-style backyard with pool, spa, outdoor kitchen, and fire pit. Community offers championship golf, tennis, and dining.',
-      propertyType: 'House',
+      propertyType: 'Single Family',
+      listingType: 'For Sale',
       price: 1650000,
       bedrooms: 6,
       bathrooms: 5.5,
@@ -256,7 +265,8 @@ export function PropertyListingForm() {
     {
       title: 'Modern Farmhouse on Acreage',
       description: 'Contemporary farmhouse design meets country living on 10 scenic acres. Features include open floor plan with vaulted ceilings, designer kitchen with farmhouse sink and professional range, master suite with barn door and soaking tub, mudroom with built-ins, and screened porch overlooking pastures. Property includes horse barn with 4 stalls, riding arena, chicken coop, vegetable garden, and pond. Perfect blend of rural tranquility and modern luxury.',
-      propertyType: 'House',
+      propertyType: 'Single Family',
+      listingType: 'For Sale',
       price: 985000,
       bedrooms: 4,
       bathrooms: 3,
@@ -278,7 +288,8 @@ export function PropertyListingForm() {
     {
       title: 'Eco-Friendly Smart Home with Solar',
       description: 'Net-zero energy home showcasing sustainable luxury. Features include solar panels with battery backup, geothermal heating/cooling, rainwater collection system, electric car charging station, smart home automation, triple-pane windows, and toxin-free materials throughout. Open design with clerestory windows, bamboo floors, quartz counters, and energy-star appliances. Low-maintenance xeriscaped yard with native plants. Live sustainably without compromise.',
-      propertyType: 'House',
+      propertyType: 'Single Family',
+      listingType: 'For Sale',
       price: 1125000,
       bedrooms: 3,
       bathrooms: 2.5,
@@ -314,10 +325,13 @@ export function PropertyListingForm() {
     // Select a random sample property
     const randomProperty = sampleProperties[Math.floor(Math.random() * sampleProperties.length)];
     
+    console.log('Filling sample data with property:', randomProperty);
+    
     // Fill form fields
     form.setValue('title', randomProperty.title);
     form.setValue('description', randomProperty.description);
     form.setValue('propertyType', randomProperty.propertyType as any);
+    form.setValue('listingType', randomProperty.listingType === 'For Sale' ? 'FOR_SALE' : 'FOR_RENT');
     form.setValue('price', randomProperty.price);
     form.setValue('bedrooms', randomProperty.bedrooms);
     form.setValue('bathrooms', randomProperty.bathrooms);
@@ -393,6 +407,9 @@ export function PropertyListingForm() {
   };
 
   const onSubmit = async (data: PropertyFormData) => {
+    console.log('Form submitted with data:', data);
+    console.log('Number of images:', imageFiles.length);
+    
     if (!user) {
       setError('You must be logged in to list a property');
       return;
@@ -456,7 +473,7 @@ export function PropertyListingForm() {
         bathrooms: data.bathrooms || 0,
         squareFeet: data.area || 0, // Map area to squareFeet
         propertyType: mapPropertyType(data.propertyType),
-        listingType: ListingType.FOR_SALE, // Default to FOR_SALE, you can add this to form if needed
+        listingType: data.listingType === 'FOR_SALE' ? ListingType.FOR_SALE : ListingType.FOR_RENT,
         images: imageUrls,
         contactName: data.contactName,
         contactEmail: data.contactEmail,
@@ -465,20 +482,34 @@ export function PropertyListingForm() {
       };
 
       console.log('Submitting property:', propertyInput);
+      console.log('About to call api.createProperty mutation...');
       
       // Call API to create property - this now returns PropertyUploadResponse
       const response = await api.createProperty(propertyInput);
       
-      console.log('Property upload initiated:', response);
+      console.log('Property upload initiated successfully!');
+      console.log('API Response:', response);
+      console.log('Execution ARN:', response.executionArn);
       
       // Store the execution ARN for status tracking
       sessionStorage.setItem('propertyUploadArn', response.executionArn);
       
       // Redirect to a status page or listings with a success message
       router.push(`/listings?uploadStatus=initiated&executionArn=${response.executionArn}`);
-    } catch (err) {
-      console.error('Error creating property:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create property listing');
+    } catch (err: any) {
+      console.error('=== ERROR CREATING PROPERTY ===');
+      console.error('Error object:', err);
+      console.error('Error message:', err?.message);
+      console.error('Error stack:', err?.stack);
+      
+      // Check for GraphQL errors
+      if (err.errors && Array.isArray(err.errors)) {
+        console.error('GraphQL errors:', err.errors);
+        const errorMessage = err.errors.map((e: any) => e.message).join(', ');
+        setError(`GraphQL Error: ${errorMessage}`);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to create property listing');
+      }
     } finally {
       setIsLoading(false);
       setUploadProgress(0);
@@ -565,7 +596,13 @@ export function PropertyListingForm() {
               </CardHeader>
 
               <CardContent className="px-8 pb-8">
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form onSubmit={(e) => {
+                  console.log('Form onSubmit triggered');
+                  console.log('Form state:', form.formState);
+                  console.log('Form errors:', form.formState.errors);
+                  console.log('Form values:', form.getValues());
+                  form.handleSubmit(onSubmit)(e);
+                }} className="space-y-8">
                   {/* Property Details Section */}
                   <div className="space-y-6">
                     <h3 className="text-xl font-semibold text-grey-900 flex items-center gap-2">
@@ -628,23 +665,41 @@ export function PropertyListingForm() {
                         </div>
 
                         <div>
-                          <Label htmlFor="price" className="text-sm font-medium text-grey-700">
-                            Price ($)
+                          <Label htmlFor="listingType" className="text-sm font-medium text-grey-700">
+                            Listing Type
                           </Label>
-                          <div className="relative mt-1">
-                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grey-400" />
-                            <Input
-                              id="price"
-                              type="number"
-                              {...form.register('price', { valueAsNumber: true })}
-                              placeholder="0"
-                              className="pl-10"
-                            />
-                          </div>
-                          {form.formState.errors.price && (
-                            <p className="text-red-500 text-xs mt-1">{form.formState.errors.price.message}</p>
+                          <Select onValueChange={(value) => form.setValue('listingType', value as any)}>
+                            <SelectTrigger className="mt-1">
+                              <SelectValue placeholder="Select listing type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="FOR_SALE">For Sale</SelectItem>
+                              <SelectItem value="FOR_RENT">For Rent</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {form.formState.errors.listingType && (
+                            <p className="text-red-500 text-xs mt-1">{form.formState.errors.listingType.message}</p>
                           )}
                         </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="price" className="text-sm font-medium text-grey-700">
+                          Price {form.watch('listingType') === 'FOR_RENT' ? '(per month)' : ''}
+                        </Label>
+                        <div className="relative mt-1">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-grey-400" />
+                          <Input
+                            id="price"
+                            type="number"
+                            {...form.register('price', { valueAsNumber: true })}
+                            placeholder="0"
+                            className="pl-10"
+                          />
+                        </div>
+                        {form.formState.errors.price && (
+                          <p className="text-red-500 text-xs mt-1">{form.formState.errors.price.message}</p>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -897,6 +952,22 @@ export function PropertyListingForm() {
                       {form.formState.errors.images && (
                         <p className="text-red-500 text-xs">{form.formState.errors.images.message}</p>
                       )}
+                      
+                      {imageFiles.length > 0 && imageFiles.length < 4 && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
+                          <span className="text-amber-600 text-sm font-medium">
+                            ⚠️ You need to upload exactly 4 images. {4 - imageFiles.length} more required.
+                          </span>
+                        </div>
+                      )}
+                      
+                      {imageFiles.length === 4 && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
+                          <span className="text-green-600 text-sm font-medium">
+                            ✅ Perfect! All 4 images uploaded. You can now create your listing.
+                          </span>
+                        </div>
+                      )}
 
                       {imagePreviews.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -953,14 +1024,34 @@ export function PropertyListingForm() {
                     </Button>
                     <Button
                       type="submit"
-                      className="bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
+                      className={`${
+                        imageFiles.length !== 4 && !isLoading
+                          ? 'bg-grey-400 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700'
+                      }`}
                       disabled={isLoading || imageFiles.length !== 4}
+                      onClick={(e) => {
+                        console.log('Create Listing button clicked');
+                        console.log('Images count:', imageFiles.length);
+                        console.log('Is loading:', isLoading);
+                        console.log('Button disabled:', isLoading || imageFiles.length !== 4);
+                        
+                        if (imageFiles.length !== 4) {
+                          e.preventDefault();
+                          console.log('Preventing submission - need 4 images');
+                          setError(`Please upload exactly 4 images. Currently uploaded: ${imageFiles.length}`);
+                        } else {
+                          console.log('Button click passed, form should submit');
+                        }
+                      }}
                     >
                       {isLoading ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Creating Listing...
                         </>
+                      ) : imageFiles.length !== 4 ? (
+                        `Upload ${4 - imageFiles.length} more image${4 - imageFiles.length === 1 ? '' : 's'}`
                       ) : (
                         'Create Listing'
                       )}
