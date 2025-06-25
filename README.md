@@ -1,20 +1,26 @@
-# LuxuryHomes: A Serverless Real Estate Property Management Platform
+# Real Estate Platform: A Serverless Property Management Solution
 
 ## 💔 The Problem We're Solving
 
-*Ever spent hours creating property listings only to wait days for approval? Struggled to generate professional market analysis reports without expensive tools? Lost track of client properties across multiple spreadsheets?*
+*Looking for a new house for our growing family, we quickly discovered the real estate market's biggest pain points:*
 
-**For brokerages, it's even worse.** Managing multiple agents, ensuring listing compliance, tracking performance across teams, and maintaining brand consistency becomes a nightmare with traditional tools. Brokerages lose 30% of productive time to administrative overhead and manual approval processes.
+**False and misleading listings everywhere.** Many online property listings contain inaccurate information, outdated photos, or properties that aren't even available.
 
-We've been there. The real estate industry runs on outdated workflows that waste valuable time—time that could be spent closing deals. LuxuryHomes transforms this chaos into clarity, automating the mundane so you can focus on what matters: your clients and properties.
+**High brokerage fees.** Standard brokerage fees around 2% add significant costs to already expensive transactions.
+
+**Missing critical data.** It's nearly impossible to find accurate square footage rates and capital appreciation data to make informed decisions.
+
+**Lack of transparency.** The information you need to evaluate properties and neighborhoods simply isn't accessible or reliable.
+
+After experiencing these frustrations firsthand, we built this platform to solve these fundamental issues in the real estate market.
 
 ## 🏗️ Architectural Excellence in Serverless Design
 
-LuxuryHomes represents a state-of-the-art implementation of serverless architecture patterns on AWS, demonstrating best practices in event-driven design, microservices architecture, and cloud-native development. This platform showcases how modern serverless applications can achieve enterprise-grade scalability, reliability, and performance while maintaining cost efficiency.
+This platform represents a state-of-the-art implementation of serverless architecture patterns on AWS, demonstrating best practices in event-driven design, microservices architecture, and cloud-native development. Built from personal experience with real estate market frustrations, it showcases how modern serverless applications can achieve enterprise-grade scalability, reliability, and performance while maintaining cost efficiency.
 
 ## 🎯 Project Overview
 
-LuxuryHomes is a comprehensive real estate property management system built entirely on AWS serverless technologies. The platform enables users to list properties, manage real estate portfolios, generate AI-powered property reports, and handle administrative workflows—all while leveraging the power of AWS Lambda and associated serverless services.
+This is a comprehensive real estate property management system built entirely on AWS serverless technologies. Born from the frustration of house hunting with unreliable data and high fees, the platform enables users to list properties with verified information, manage real estate portfolios, generate AI-powered property reports with accurate market data, and handle administrative workflows—all while leveraging the power of AWS Lambda and associated serverless services.
 
 ## 🏛️ Architecture Overview
 
@@ -25,7 +31,7 @@ LuxuryHomes is a comprehensive real estate property management system built enti
 Our architecture embodies several industry-leading serverless patterns:
 
 1. **Event-Driven Architecture**: Loosely coupled components communicate through events via EventBridge
-2. **Microservices Pattern**: Each Lambda function serves a single purpose, promoting maintainability
+2. **Single Responsibility Pattern**: Each Lambda function serves a single purpose, promoting maintainability
 3. **Choreography & Orchestration**: Combining Step Functions for complex workflows with event-driven choreography
 4. **Async Request-Reply**: SQS queues decouple time-intensive operations from synchronous API calls
 5. **API Gateway Pattern**: AppSync provides a unified GraphQL interface for all operations
@@ -33,7 +39,7 @@ Our architecture embodies several industry-leading serverless patterns:
 ## 🛠️ AWS Services Utilized
 
 ### Core Compute & Orchestration
-- **AWS Lambda**: 40+ purpose-built functions implementing microservices architecture
+- **AWS Lambda**: 40+ purpose-built functions implementing single-responsibility architecture
 - **AWS Step Functions**: Orchestrating complex multi-step workflows with built-in error handling
 - **Amazon SQS**: Decoupling components for resilient async processing
 - **Amazon EventBridge**: Event routing for admin operations and system events
@@ -182,7 +188,6 @@ GenerateAIContent → GeneratePDF → SaveToS3 → SendEmail
 - AWS Account with appropriate permissions
 - Node.js 20.x or later
 - AWS CDK CLI installed
-- Resend API key for email functionality
 
 ### Deployment Steps
 
@@ -196,12 +201,11 @@ GenerateAIContent → GeneratePDF → SaveToS3 → SendEmail
 3. Configure environment:
    ```bash
    export AWS_REGION=us-east-1
-   export RESEND_API_KEY=your-resend-api-key
    ```
 
 4. Deploy the stack:
    ```bash
-   npx cdk deploy --context resendApiKey=$RESEND_API_KEY
+   npx cdk deploy
    ```
 
 5. Note the outputs for frontend configuration
@@ -242,14 +246,6 @@ The serverless architecture delivers:
 - **99.9% Availability**: Leveraging AWS managed services
 - **Infinite Scalability**: No infrastructure limits
 - **Cost Efficiency**: Pay only for actual usage
-
-## 🤝 Contributing
-
-This project serves as a reference implementation for serverless best practices. Contributions that enhance the architectural patterns or add new serverless capabilities are welcome.
-
-## 📝 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ---
 
