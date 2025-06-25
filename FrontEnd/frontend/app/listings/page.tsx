@@ -304,7 +304,6 @@ function ListingsContent() {
         limit: 20
       });
       
-      console.log('ListProperties Query Data:', response);
       const properties = response?.items || [];
       setFetchedProperties(properties);
     } catch (error) {
@@ -701,7 +700,6 @@ function ListingsContent() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            console.log('Generate AI Insights clicked for property:', property);
                             setSelectedPropertyForAI(property);
                             setShowAIProcessing(true);
                           }}
@@ -749,7 +747,6 @@ function ListingsContent() {
       <AIProcessingModal
         isOpen={showAIProcessing}
         onClose={() => {
-          console.log('Closing AI Processing Modal');
           setShowAIProcessing(false);
           setSelectedPropertyForAI(null);
         }}

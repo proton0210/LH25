@@ -1,5 +1,5 @@
 # CDK Stack Outputs
-# Generated on: 2025-06-25T08:11:05.420Z
+# Generated on: 2025-06-25T09:03:42.224Z
 
 AdminEventBusName=lh-admin-operations-bus
 AdminGroupName=admin

@@ -29,9 +29,6 @@ export function AIProcessingModal({ isOpen, onClose }: AIProcessingModalProps) {
 
   useEffect(() => {
     if (isOpen) {
-      console.log('AI Processing Modal opened');
-      console.log('Modal will close automatically after 10 seconds');
-      
       // Reset states
       setProgress(0);
       setCurrentStep(0);
@@ -63,12 +60,10 @@ export function AIProcessingModal({ isOpen, onClose }: AIProcessingModalProps) {
       }, 2000);
       
       const timer = setTimeout(() => {
-        console.log('AI Processing Modal closing after timeout');
         onClose();
       }, 10000);
       
       return () => {
-        console.log('Cleaning up AI Processing Modal timer');
         clearTimeout(timer);
         clearInterval(progressInterval);
         clearInterval(stepInterval);
@@ -77,11 +72,9 @@ export function AIProcessingModal({ isOpen, onClose }: AIProcessingModalProps) {
   }, [isOpen, onClose]);
 
   if (!isOpen) {
-    console.log('AI Processing Modal not rendering - isOpen is false');
     return null;
   }
 
-  console.log('AI Processing Modal rendering');
   const currentStepData = steps[currentStep];
   
   return (

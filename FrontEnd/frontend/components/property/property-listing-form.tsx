@@ -466,18 +466,11 @@ export function PropertyListingForm() {
       // Redirect to listings with a success message
       router.push('/listings?uploadStatus=success');
     } catch (err: any) {
-      console.error('=== ERROR CREATING PROPERTY ===');
-      console.error('Error object:', err);
-      console.error('Error message:', err?.message);
-      console.error('Error stack:', err?.stack);
-      
       // Check for GraphQL errors
       if (err.errors && Array.isArray(err.errors)) {
-        console.error('GraphQL errors:', err.errors);
         const errorMessage = err.errors.map((e: any) => e.message).join(', ');
         setError(`GraphQL Error: ${errorMessage}`);
       } else if (err.response?.errors) {
-        console.error('GraphQL response errors:', err.response.errors);
         const errorMessage = err.response.errors.map((e: any) => e.message).join(', ');
         setError(`GraphQL Error: ${errorMessage}`);
       } else {

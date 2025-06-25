@@ -1974,13 +1974,11 @@ export class BackEndStack extends cdk.Stack {
 
     // Add Lambda targets to the rules
     propertyApprovedRule.addTarget(new eventsTargets.LambdaFunction(propertyApprovedHandlerLambda, {
-      deadLetterQueue: aiProcessingDLQ, // Reuse existing DLQ
       maxEventAge: cdk.Duration.hours(2),
       retryAttempts: 2,
     }));
 
     propertyRejectedRule.addTarget(new eventsTargets.LambdaFunction(propertyRejectedHandlerLambda, {
-      deadLetterQueue: aiProcessingDLQ, // Reuse existing DLQ
       maxEventAge: cdk.Duration.hours(2),
       retryAttempts: 2,
     }));
