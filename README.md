@@ -1,6 +1,6 @@
 # Real Estate Platform: A Serverless Property Management Solution
 
-## 💔 The Problem We're Solving
+## The Problem We're Solving
 
 *Looking for a new house for our growing family, we quickly discovered the real estate market's biggest pain points:*
 
@@ -12,7 +12,7 @@
 
 **Lack of transparency.** The information you need to evaluate properties and neighborhoods simply isn't accessible or reliable.
 
-After experiencing these frustrations firsthand, we built this platform to solve these fundamental issues in the real estate market.
+After experiencing these frustrations firsthand, I built this platform to solve these fundamental issues in the real estate market.
 
 ## 🏗️ Architectural Excellence in Serverless Design
 
@@ -39,7 +39,7 @@ Our architecture embodies several industry-leading serverless patterns:
 ## 🛠️ AWS Services Utilized
 
 ### Core Compute & Orchestration
-- **AWS Lambda**: 40+ purpose-built functions implementing single-responsibility architecture
+- **AWS Lambda**: 20+ purpose-built functions implementing single-responsibility architecture
 - **AWS Step Functions**: Orchestrating complex multi-step workflows with built-in error handling
 - **Amazon SQS**: Decoupling components for resilient async processing
 - **Amazon EventBridge**: Event routing for admin operations and system events
@@ -51,11 +51,9 @@ Our architecture embodies several industry-leading serverless patterns:
 
 ### Security & Identity
 - **Amazon Cognito**: User authentication with group-based authorization
-- **AWS IAM**: Fine-grained permissions following principle of least privilege
 
 ### Infrastructure & Deployment
 - **AWS CDK**: Infrastructure as Code for reproducible deployments
-- **AWS X-Ray**: Distributed tracing for performance optimization
 
 ## 🌟 Core Features & Functionality
 
@@ -105,52 +103,8 @@ functions/
    - Targeted dependencies per function
    - Strategic timeout configurations
 3. **Error Handling**: Comprehensive error handling with SQS DLQs
-4. **Observability**: Structured logging with X-Ray tracing
+4. **Observability**: Structured logging
 
-## 🚀 Scalability & Performance Patterns
-
-### Horizontal Scaling
-- **Lambda Concurrency**: Automatic scaling based on demand
-- **DynamoDB On-Demand**: Pay-per-request pricing with instant scaling
-- **SQS Message Processing**: Concurrent message processing with configurable batch sizes
-
-### Performance Optimization
-- **Caching Strategy**: S3 presigned URLs reduce Lambda invocations
-- **Parallel Processing**: Step Functions parallel states for concurrent operations
-- **Efficient Queries**: DynamoDB GSIs optimize common access patterns
-
-### Resilience Patterns
-- **Circuit Breaker**: Step Functions retry logic with exponential backoff
-- **Dead Letter Queues**: Failed messages captured for analysis
-- **Idempotency**: Safe retry mechanisms in all workflows
-
-## 🔐 Security Best Practices
-
-### Identity & Access Management
-- **Principle of Least Privilege**: Each Lambda has minimal required permissions
-- **Cognito Groups**: Role-based access control at the API level
-- **JWT Validation**: AppSync validates tokens for every request
-
-### Data Security
-- **Encryption at Rest**: S3 and DynamoDB encryption enabled
-- **Encryption in Transit**: HTTPS for all API communications
-- **Secure File Access**: Time-limited presigned URLs prevent unauthorized access
-
-### Compliance & Auditing
-- **X-Ray Tracing**: Complete request tracking across services
-- **Structured Logging**: Consistent log formats for analysis
-
-## 💰 Cost Optimization Strategies
-
-### Pay-Per-Use Model
-- **Lambda Pricing**: Pay only for actual compute time used
-- **DynamoDB On-Demand**: No idle capacity charges
-- **S3 Intelligent-Tiering**: Automatic cost optimization for stored objects
-
-### Resource Efficiency
-- **Function Memory Optimization**: Right-sized based on profiling
-- **Batch Processing**: SQS batch operations reduce invocations
-- **Lifecycle Policies**: S3 lifecycle rules for old object versions
 
 ## 🚦 Step Functions Workflows
 
@@ -198,17 +152,12 @@ GenerateAIContent → GeneratePDF → SaveToS3 → SendEmail
    npm install
    ```
 
-3. Configure environment:
+3. Deploy the stack using our custom script:
    ```bash
-   export AWS_REGION=us-east-1
+   npm run deploy
    ```
 
-4. Deploy the stack:
-   ```bash
-   npx cdk deploy
-   ```
-
-5. Note the outputs for frontend configuration
+4. Note the outputs for frontend configuration
 
 ### Environment Variables
 
@@ -238,14 +187,6 @@ The architecture is designed for evolution:
 - **Event-Driven Extensions**: New consumers can subscribe to existing events
 - **API Versioning**: GraphQL schema evolution without breaking changes
 - **Infrastructure as Code**: Version-controlled, reviewable infrastructure changes
-
-## 📈 Performance Metrics
-
-The serverless architecture delivers:
-- **Sub-second API Response Times**: Optimized Lambda functions
-- **99.9% Availability**: Leveraging AWS managed services
-- **Infinite Scalability**: No infrastructure limits
-- **Cost Efficiency**: Pay only for actual usage
 
 ---
 
