@@ -1,16 +1,13 @@
 import { z } from 'zod';
 
 export const propertyTypes = [
-  'House',
-  'Apartment',
-  'Condo',
-  'Townhouse',
-  'Villa',
-  'Studio',
-  'Duplex',
-  'Penthouse',
-  'Land',
-  'Commercial',
+  'SINGLE_FAMILY',
+  'CONDO',
+  'TOWNHOUSE',
+  'MULTI_FAMILY',
+  'LAND',
+  'COMMERCIAL',
+  'OTHER',
 ] as const;
 
 export const listingTypes = [

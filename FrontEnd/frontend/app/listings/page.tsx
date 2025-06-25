@@ -322,20 +322,19 @@ function ListingsContent() {
   // Check for upload status from URL params
   useEffect(() => {
     const status = searchParams.get('uploadStatus');
-    const executionArn = searchParams.get('executionArn');
+    const propertyId = searchParams.get('propertyId');
     
-    if (status === 'initiated' && executionArn) {
+    if (status === 'success') {
       setUploadStatus({ 
         show: true, 
-        executionArn,
-        message: 'Your property listing is being processed. You can check the status in your dashboard.'
+        message: 'Your property has been submitted successfully!'
       });
       
       // Clean up URL params after showing message
       const timer = setTimeout(() => {
         const url = new URL(window.location.href);
         url.searchParams.delete('uploadStatus');
-        url.searchParams.delete('executionArn');
+        url.searchParams.delete('propertyId');
         window.history.replaceState({}, '', url.toString());
         
         // Hide message after 10 seconds
@@ -461,11 +460,8 @@ function ListingsContent() {
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-medium text-green-800">Property Upload Initiated</h3>
+                  <h3 className="text-sm font-medium text-green-800">Success!</h3>
                   <p className="text-sm text-green-700 mt-1">{uploadStatus.message}</p>
-                  {uploadStatus.executionArn && (
-                    <p className="text-xs text-green-600 mt-2 font-mono">Tracking ID: {uploadStatus.executionArn.split(':').pop()}</p>
-                  )}
                 </div>
                 <button
                   onClick={() => setUploadStatus({ show: false })}

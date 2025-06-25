@@ -1,9 +1,9 @@
 export const createProperty = /* GraphQL */ `
   mutation CreateProperty($input: CreatePropertyInput!) {
     createProperty(input: $input) {
-      executionArn
-      startDate
+      propertyId
       message
+      queueMessageId
     }
   }
 `;

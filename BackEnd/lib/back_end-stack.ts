@@ -43,6 +43,7 @@ export class BackEndStack extends cdk.Stack {
           NODE_OPTIONS: "--enable-source-maps",
         },
         timeout: cdk.Duration.seconds(30),
+        memorySize: 256,
       }
     );
 
@@ -201,7 +202,11 @@ export class BackEndStack extends cdk.Stack {
           sourcesContent: false,
           target: "node20",
         },
-        timeout: cdk.Duration.seconds(10),
+        environment: {
+          NODE_OPTIONS: "--enable-source-maps",
+        },
+        timeout: cdk.Duration.seconds(3),
+        memorySize: 128,
       }
     );
 
@@ -223,8 +228,10 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           USER_TABLE_NAME: userTable.tableName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -246,8 +253,10 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
         timeout: cdk.Duration.seconds(10),
+        memorySize: 128,
       }
     );
 
@@ -268,7 +277,11 @@ export class BackEndStack extends cdk.Stack {
           sourcesContent: false,
           target: "node20",
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
+        environment: {
+          NODE_OPTIONS: "--enable-source-maps",
+        },
       }
     );
 
@@ -505,7 +518,11 @@ export class BackEndStack extends cdk.Stack {
           sourcesContent: false,
           target: "node20",
         },
-        timeout: cdk.Duration.seconds(10),
+        timeout: cdk.Duration.seconds(5),
+        memorySize: 256,
+        environment: {
+          NODE_OPTIONS: "--enable-source-maps",
+        },
       }
     );
 
@@ -527,9 +544,10 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(60), // Increased timeout for downloading images
-        memorySize: 512, // Increased memory for image processing
+        timeout: cdk.Duration.seconds(30), // Reduced from 60s
+        memorySize: 512, // Keep higher memory for image processing
       }
     );
 
@@ -551,8 +569,10 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           PROPERTIES_TABLE_NAME: propertiesTable.tableName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -575,8 +595,10 @@ export class BackEndStack extends cdk.Stack {
         environment: {
           USER_TABLE_NAME: userTable.tableName,
           RESEND_API_KEY: this.node.tryGetContext('resendApiKey') || '',
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -689,14 +711,16 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           PROPERTY_UPLOAD_STATE_MACHINE_ARN: propertyUploadStateMachine.stateMachineArn,
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(30), // 30 seconds is enough to trigger Step Functions
-        memorySize: 256,
+        timeout: cdk.Duration.seconds(10), // Reduced from 30s - just triggering Step Functions
+        memorySize: 128, // Reduced from 256MB - minimal processing
       }
     );
 
     // Create Lambda Resolvers
     const resolverEnvironment = {
+      NODE_OPTIONS: "--enable-source-maps",
       PROPERTIES_TABLE_NAME: propertiesTable.tableName,
       PROPERTY_IMAGES_BUCKET_NAME: propertyImagesBucket.bucketName,
       USER_TABLE_NAME: userTable.tableName,
@@ -722,7 +746,8 @@ export class BackEndStack extends cdk.Stack {
         ...resolverEnvironment,
         USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
       },
-      timeout: cdk.Duration.seconds(10),
+      timeout: cdk.Duration.seconds(5),
+      memorySize: 128,
     });
 
     // Create Property Lambda
@@ -744,6 +769,7 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: resolverEnvironment,
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -765,7 +791,8 @@ export class BackEndStack extends cdk.Stack {
         target: "node20",
       },
       environment: resolverEnvironment,
-      timeout: cdk.Duration.seconds(10),
+      timeout: cdk.Duration.seconds(5),
+      memorySize: 128,
     });
 
     // List Properties Lambda
@@ -787,6 +814,7 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: resolverEnvironment,
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -811,7 +839,8 @@ export class BackEndStack extends cdk.Stack {
           ...resolverEnvironment,
           USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
         },
-        timeout: cdk.Duration.seconds(30), // Increased for S3 operations
+        timeout: cdk.Duration.seconds(15), // Reduced from 30s
+        memorySize: 512, // Higher memory for S3 operations
       }
     );
 
@@ -834,6 +863,7 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: resolverEnvironment,
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -856,6 +886,7 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: resolverEnvironment,
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -878,6 +909,7 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: resolverEnvironment,
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -900,6 +932,7 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: resolverEnvironment,
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -922,6 +955,7 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: resolverEnvironment,
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -946,7 +980,8 @@ export class BackEndStack extends cdk.Stack {
           ...resolverEnvironment,
           USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(15), // Reduced from 30s
+        memorySize: 512, // Higher memory for S3 operations
       }
     );
 
@@ -1114,8 +1149,10 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           USER_POOL_ID: userPool.userPoolId,
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(10),
+        timeout: cdk.Duration.seconds(5),
+        memorySize: 128,
       }
     );
 
@@ -1137,8 +1174,10 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           USER_TABLE_NAME: userTable.tableName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -1160,8 +1199,10 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           USER_TABLE_NAME: userTable.tableName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -1244,8 +1285,10 @@ export class BackEndStack extends cdk.Stack {
         environment: {
           USER_POOL_ID: userPool.userPoolId,
           UPGRADE_USER_STATE_MACHINE_ARN: upgradeUserStateMachine.stateMachineArn,
+          NODE_OPTIONS: "--enable-source-maps",
         },
         timeout: cdk.Duration.seconds(10),
+        memorySize: 256,
       }
     );
 
@@ -1284,9 +1327,11 @@ export class BackEndStack extends cdk.Stack {
           sourcesContent: false,
           target: "node20",
         },
-        environment: {},
-        timeout: cdk.Duration.seconds(60), // Longer timeout for AI generation
-        memorySize: 1024, // More memory for AI processing
+        environment: {
+          NODE_OPTIONS: "--enable-source-maps",
+        },
+        timeout: cdk.Duration.seconds(30), // Reduced from 60s - just sending to queue
+        memorySize: 256, // Reduced from 1024MB - just queue message
       }
     );
 
@@ -1321,7 +1366,9 @@ export class BackEndStack extends cdk.Stack {
           sourcesContent: false,
           target: "node20",
         },
-        environment: {},
+        environment: {
+          NODE_OPTIONS: "--enable-source-maps",
+        },
         timeout: cdk.Duration.seconds(60),
         memorySize: 1024,
       }
@@ -1346,8 +1393,10 @@ export class BackEndStack extends cdk.Stack {
           externalModules: [],
           nodeModules: ["pdfkit"],
         },
-        environment: {},
-        timeout: cdk.Duration.seconds(30),
+        environment: {
+          NODE_OPTIONS: "--enable-source-maps",
+        },
+        timeout: cdk.Duration.seconds(15), // Reduced from 30s
         memorySize: 512,
       }
     );
@@ -1372,8 +1421,10 @@ export class BackEndStack extends cdk.Stack {
         environment: {
           USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
           USER_TABLE_NAME: userTable.tableName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(15), // Reduced from 30s
+        memorySize: 256,
       }
     );
 
@@ -1396,8 +1447,10 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           USER_TABLE_NAME: userTable.tableName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(10), // Reduced from 30s
+        memorySize: 256,
       }
     );
 
@@ -1506,8 +1559,10 @@ export class BackEndStack extends cdk.Stack {
         },
         environment: {
           USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(10),
+        timeout: cdk.Duration.seconds(5),
+        memorySize: 128,
       }
     );
 
@@ -1551,8 +1606,10 @@ export class BackEndStack extends cdk.Stack {
         environment: {
           USER_FILES_BUCKET_NAME: userFilesBucket.bucketName,
           USER_TABLE_NAME: userTable.tableName,
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(15), // Reduced from 30s
+        memorySize: 512, // Higher memory for list operations
       }
     );
 
@@ -1626,10 +1683,11 @@ export class BackEndStack extends cdk.Stack {
           target: "node20",
         },
         environment: {
+          NODE_OPTIONS: "--enable-source-maps",
           // Environment variables will be added later
         },
-        timeout: cdk.Duration.seconds(30), // 30 seconds is enough to trigger Step Functions
-        memorySize: 256, // Reduced memory since we're just triggering Step Functions
+        timeout: cdk.Duration.seconds(10), // Reduced from 30s - just triggering Step Functions
+        memorySize: 128, // Reduced from 256MB - minimal processing
       }
     );
 
@@ -1856,8 +1914,9 @@ export class BackEndStack extends cdk.Stack {
         environment: {
           USER_TABLE_NAME: userTable.tableName,
           RESEND_API_KEY: this.node.tryGetContext('resendApiKey') || '',
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(10),
         memorySize: 256,
       }
     );
@@ -1881,8 +1940,9 @@ export class BackEndStack extends cdk.Stack {
         environment: {
           USER_TABLE_NAME: userTable.tableName,
           RESEND_API_KEY: this.node.tryGetContext('resendApiKey') || '',
+          NODE_OPTIONS: "--enable-source-maps",
         },
-        timeout: cdk.Duration.seconds(30),
+        timeout: cdk.Duration.seconds(10),
         memorySize: 256,
       }
     );

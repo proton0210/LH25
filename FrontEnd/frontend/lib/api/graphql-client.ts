@@ -98,9 +98,9 @@ export interface PropertyFilter {
 }
 
 export interface PropertyUploadResponse {
-  executionArn: string;
-  startDate: string;
+  propertyId: string;
   message: string;
+  queueMessageId?: string;
 }
 
 export interface ReportStatus {
