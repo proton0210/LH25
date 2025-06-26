@@ -2,6 +2,10 @@
 
 ![Architecture Diagram](images/LH25.png)
 
+## 🚀 Deployment
+
+For detailed deployment instructions, see [Deployment.md](Deployment.md).
+
 ## The Problem We're Solving
 
 *Looking for a new house for our growing family, we quickly discovered the real estate market's biggest pain points:*
@@ -124,13 +128,6 @@ Step Functions → Lambda 1 → Lambda 2 → Lambda 3 → Complete
 - **`property-upload-consumer`** - Processes SQS messages to initiate property upload workflow
 - **`ai-processing-consumer`** - Handles AI report generation requests from SQS queue
 
-### Lambda Configuration Highlights
-- **Memory Allocation**: Ranges from 128MB (simple queries) to 1GB (AI processing)
-- **Timeout Settings**: 10 seconds (API operations) to 15 minutes (report generation)
-- **Concurrency**: Reserved concurrency for critical functions
-- **Environment Variables**: Secure configuration for service endpoints and tables
-- **Error Handling**: DLQ integration for failed executions
-- **IAM Roles**: Least-privilege access to required AWS services
 
 ## 🏛️ Architecture Overview
 
