@@ -2,16 +2,6 @@
 
 ![Architecture Diagram](images/LH25.png)
 
-## Table of Contents
-- [Overview](#overview)
-- [The Problem We're Solving](#the-problem-were-solving)
-- [AWS Lambda Architecture](#aws-lambda-architecture)
-- [Lambda Functions Deep Dive](#lambda-functions-deep-dive)
-- [Architecture Overview](#architecture-overview)
-- [Core Features](#core-features)
-- [Technical Implementation](#technical-implementation)
-- [Deployment](#deployment)
-
 ## The Problem We're Solving
 
 *Looking for a new house for our growing family, we quickly discovered the real estate market's biggest pain points:*
