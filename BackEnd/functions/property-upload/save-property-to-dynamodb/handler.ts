@@ -50,6 +50,13 @@ export const handler = async (
 
     // Determine submittedBy based on user identifiers
     const submittedBy = propertyData.cognitoUserId || propertyData.userId || undefined;
+    
+    console.log('User identification for property:', {
+      cognitoUserId: propertyData.cognitoUserId,
+      userId: propertyData.userId,
+      submittedBy: submittedBy,
+      hasSubmittedBy: !!submittedBy
+    });
 
     // Create property object
     const property = {
@@ -104,6 +111,12 @@ export const handler = async (
         gsi5sk: `SUBMITTED#${property.submittedAt}`,
       }),
     };
+    
+    console.log('GSI5 configuration:', {
+      hasSubmittedBy: !!submittedBy,
+      gsi5pk: submittedBy ? `USER#${submittedBy}` : 'NOT SET',
+      gsi5sk: submittedBy ? `SUBMITTED#${property.submittedAt}` : 'NOT SET'
+    });
 
     // Save to DynamoDB
     await docClient.send(new PutCommand({
@@ -112,7 +125,11 @@ export const handler = async (
       ConditionExpression: 'attribute_not_exists(pk)', // Ensure uniqueness
     }));
 
-    console.log('Property saved successfully:', property.id);
+    console.log('Property saved successfully:', {
+      propertyId: property.id,
+      hasGSI5: !!submittedBy,
+      submittedBy: submittedBy || 'anonymous'
+    });
 
     return {
       success: true,
@@ -120,7 +137,6 @@ export const handler = async (
     };
 
   } catch (error) {
-    console.error('Error saving property:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to save property'

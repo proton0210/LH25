@@ -1,17 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Mail, Brain, Sparkles, CheckCircle, Zap, FileText, TrendingUp, Shield, Home, Clock, MapPin, DollarSign, BarChart3 } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Mail, Brain, Sparkles, CheckCircle, Zap, FileText, TrendingUp, Shield, Home, Clock, MapPin, DollarSign, BarChart3, AlertCircle, X } from 'lucide-react';
+import { generateClient } from 'aws-amplify/api';
+import { generatePropertyReport } from '@/lib/graphql/mutations';
+import { getReportStatus } from '@/lib/graphql/queries';
+import { useRouter } from 'next/navigation';
 
 interface AIProcessingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  property?: any;
 }
 
-export function AIProcessingModal({ isOpen, onClose }: AIProcessingModalProps) {
+export function AIProcessingModal({ isOpen, onClose, property }: AIProcessingModalProps) {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [showingFeatures, setShowingFeatures] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [executionArn, setExecutionArn] = useState<string | null>(null);
+  const [reportGenerated, setReportGenerated] = useState(false);
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+  const client = generateClient();
+  const router = useRouter();
 
   const steps = [
     { icon: Home, text: "Analyzing property details", color: "from-blue-500 to-indigo-600" },
@@ -27,12 +38,134 @@ export function AIProcessingModal({ isOpen, onClose }: AIProcessingModalProps) {
     { icon: Zap, title: "AI Insights", description: "Personalized recommendations" }
   ];
 
+  // Helper functions to map property data
+  const mapListingType = (type: string): string => {
+    const mappings: { [key: string]: string } = {
+      'For Sale': 'FOR_SALE',
+      'For Rent': 'FOR_RENT',
+      'Sold': 'SOLD',
+      'Rented': 'RENTED',
+      'FOR_SALE': 'FOR_SALE',
+      'FOR_RENT': 'FOR_RENT',
+      'SOLD': 'SOLD',
+      'RENTED': 'RENTED'
+    };
+    return mappings[type] || 'FOR_SALE';
+  };
+
+  const mapPropertyType = (type: string): string => {
+    const mappings: { [key: string]: string } = {
+      'Single Family': 'SINGLE_FAMILY',
+      'Condo': 'CONDO',
+      'Townhouse': 'TOWNHOUSE',
+      'Multi Family': 'MULTI_FAMILY',
+      'Land': 'LAND',
+      'Commercial': 'COMMERCIAL',
+      'Other': 'OTHER',
+      'SINGLE_FAMILY': 'SINGLE_FAMILY',
+      'CONDO': 'CONDO',
+      'TOWNHOUSE': 'TOWNHOUSE',
+      'MULTI_FAMILY': 'MULTI_FAMILY',
+      'LAND': 'LAND',
+      'COMMERCIAL': 'COMMERCIAL',
+      'OTHER': 'OTHER'
+    };
+    return mappings[type] || 'OTHER';
+  };
+
+  const generateAIReport = async () => {
+    if (!property) return;
+    
+    try {
+      setError(null);
+      console.log('Starting AI report generation for property:', property);
+      
+      // Map property data to GenerateReportInput matching the schema
+      const input = {
+        title: property.title || 'Untitled Property',
+        description: property.description || 'No description available',
+        price: property.price || 0,
+        address: property.address || 'Address not specified',
+        city: property.city || 'Unknown City',
+        state: property.state || 'Unknown State',
+        zipCode: property.zipCode || '00000',
+        bedrooms: property.bedrooms || 0,
+        bathrooms: property.bathrooms || 0,
+        squareFeet: property.squareFeet || 0,
+        propertyType: mapPropertyType(property.propertyType),
+        listingType: mapListingType(property.listingType),
+        yearBuilt: property.yearBuilt || null,
+        lotSize: property.lotSize || null,
+        amenities: property.amenities || property.features || [],
+        reportType: 'MARKET_ANALYSIS',
+        includeDetailedAmenities: true
+      };
+
+      console.log('Sending mutation with input:', input);
+      
+      const result = await client.graphql({
+        query: generatePropertyReport,
+        variables: { input }
+      });
+
+      console.log('Mutation result:', result);
+      
+      if (result.data?.generatePropertyReport?.executionArn) {
+        setExecutionArn(result.data.generatePropertyReport.executionArn);
+        pollReportStatus(result.data.generatePropertyReport.executionArn);
+      } else {
+        throw new Error('No execution ARN received from server');
+      }
+    } catch (err) {
+      console.error('Error generating report:', err);
+      setError('Failed to generate AI insights. Please try again.');
+    }
+  };
+
+  const pollReportStatus = (arn: string) => {
+    console.log('Starting to poll report status for:', arn);
+    
+    pollingInterval.current = setInterval(async () => {
+      try {
+        const result = await client.graphql({
+          query: getReportStatus,
+          variables: { executionArn: arn }
+        });
+
+        console.log('Poll result:', result);
+
+        if (result.data?.getReportStatus) {
+          const status = result.data.getReportStatus.status;
+          
+          if (status === 'SUCCEEDED') {
+            setReportGenerated(true);
+            if (pollingInterval.current) {
+              clearInterval(pollingInterval.current);
+            }
+          } else if (status === 'FAILED' || status === 'TIMED_OUT' || status === 'ABORTED') {
+            setError(`Report generation ${status.toLowerCase()}. Please try again.`);
+            if (pollingInterval.current) {
+              clearInterval(pollingInterval.current);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error polling status:', err);
+      }
+    }, 3000); // Poll every 3 seconds
+  };
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && property) {
       // Reset states
       setProgress(0);
       setCurrentStep(0);
       setShowingFeatures(false);
+      setError(null);
+      setReportGenerated(false);
+      
+      // Start report generation
+      generateAIReport();
       
       // Show features after 1 second
       setTimeout(() => setShowingFeatures(true), 1000);
@@ -42,6 +175,10 @@ export function AIProcessingModal({ isOpen, onClose }: AIProcessingModalProps) {
         setProgress(prev => {
           if (prev >= 100) {
             clearInterval(progressInterval);
+            // Auto-close modal after reaching 100%
+            setTimeout(() => {
+              onClose();
+            }, 500);
             return 100;
           }
           return prev + 1;
@@ -59,17 +196,15 @@ export function AIProcessingModal({ isOpen, onClose }: AIProcessingModalProps) {
         });
       }, 2000);
       
-      const timer = setTimeout(() => {
-        onClose();
-      }, 10000);
-      
       return () => {
-        clearTimeout(timer);
         clearInterval(progressInterval);
         clearInterval(stepInterval);
+        if (pollingInterval.current) {
+          clearInterval(pollingInterval.current);
+        }
       };
     }
-  }, [isOpen, onClose]);
+  }, [isOpen, property]);
 
   if (!isOpen) {
     return null;
@@ -83,6 +218,15 @@ export function AIProcessingModal({ isOpen, onClose }: AIProcessingModalProps) {
         <div className="bg-gradient-to-b from-white to-grey-50 rounded-3xl shadow-2xl overflow-hidden border border-grey-200">
           {/* Animated gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 via-pink-500/5 to-purple-600/5 animate-gradient-xy"></div>
+          
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/90 hover:bg-white text-grey-600 hover:text-grey-900 transition-all duration-200 shadow-lg z-10"
+            aria-label="Close modal"
+          >
+            <X className="w-5 h-5" />
+          </button>
           
           {/* Content */}
           <div className="relative p-10">
@@ -243,6 +387,29 @@ export function AIProcessingModal({ isOpen, onClose }: AIProcessingModalProps) {
                   </div>
                 </div>
               </div>
+              
+              {/* Error State */}
+              {error && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Success State */}
+              {reportGenerated && (
+                <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="text-sm font-semibold text-green-700">Report Generated Successfully!</p>
+                      <p className="text-sm text-green-600">Redirecting to My Reports...</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

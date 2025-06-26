@@ -23,8 +23,6 @@ interface UserDetails {
 }
 
 export const handler: AppSyncResolverHandler<GetUserDetailsArguments, UserDetails | null> = async (event) => {
-  console.log("Event:", JSON.stringify(event, null, 2));
-
   const { cognitoUserId } = event.arguments;
   const identity = event.identity as any;
 
@@ -65,7 +63,6 @@ export const handler: AppSyncResolverHandler<GetUserDetailsArguments, UserDetail
 
     return user;
   } catch (error) {
-    console.error("Error fetching user details:", error);
     throw error;
   }
 };

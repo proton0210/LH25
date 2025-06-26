@@ -82,8 +82,6 @@ async function generateSignedUrlsForImages(images: string[], userId?: string): P
 }
 
 export const handler: AppSyncResolverHandler<ListMyPropertiesArgs, PropertyConnection> = async (event) => {
-  console.log('ListMyProperties event:', JSON.stringify(event, null, 2));
-
   const { userId, limit = 20, nextToken } = event.arguments;
   const identity = event.identity as AppSyncIdentityCognito;
   const maxLimit = Math.min(limit, 100); // Cap at 100 items
@@ -135,7 +133,7 @@ export const handler: AppSyncResolverHandler<ListMyPropertiesArgs, PropertyConne
 
     // Clean up items and generate signed URLs for images
     const items = await Promise.all(
-      (result.Items || []).map(async (item) => {
+      (result.Items || []).map(async (item, index) => {
         const { pk, sk, gsi1pk, gsi1sk, gsi2pk, gsi2sk, gsi3pk, gsi3sk, gsi4pk, gsi4sk, gsi5pk, gsi5sk, ...property } = item;
         
         // Generate signed URLs for images
@@ -156,10 +154,9 @@ export const handler: AppSyncResolverHandler<ListMyPropertiesArgs, PropertyConne
     if (result.LastEvaluatedKey) {
       response.nextToken = Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64');
     }
-
+    
     return response;
   } catch (error) {
-    console.error('Error listing my properties:', error);
-    throw new Error('Failed to list properties');
+    throw new Error(`Failed to list properties: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };

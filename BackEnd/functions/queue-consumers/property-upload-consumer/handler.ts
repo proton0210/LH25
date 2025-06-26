@@ -13,8 +13,6 @@ interface PropertyUploadMessage {
 }
 
 export const handler: SQSHandler = async (event: SQSEvent) => {
-  console.log('Processing property upload messages from SQS:', JSON.stringify(event, null, 2));
-
   const stateMachineArn = process.env.PROPERTY_UPLOAD_STATE_MACHINE_ARN;
   
   if (!stateMachineArn) {
@@ -24,7 +22,6 @@ export const handler: SQSHandler = async (event: SQSEvent) => {
   for (const record of event.Records) {
     try {
       const message: PropertyUploadMessage = JSON.parse(record.body);
-      console.log(`Processing property upload from queue: ${message.propertyId}`);
 
       // Start Step Functions execution
       const executionName = `property-upload-${message.propertyId}-${Date.now()}`;
@@ -43,10 +40,8 @@ export const handler: SQSHandler = async (event: SQSEvent) => {
       });
       
       const sfnResponse = await sfnClient.send(startExecutionCommand);
-      console.log(`Started property upload workflow: ${sfnResponse.executionArn}`);
       
     } catch (error) {
-      console.error('Error processing message:', error);
       throw error; // Let SQS handle retry
     }
   }

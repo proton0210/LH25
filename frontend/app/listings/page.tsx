@@ -22,7 +22,8 @@ import {
   ChevronRight,
   Sparkles,
   Brain,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -47,6 +48,7 @@ function ListingsContent() {
   const [uploadStatus, setUploadStatus] = useState<{ show: boolean; executionArn?: string; message?: string }>({ show: false });
   const [fetchedProperties, setFetchedProperties] = useState<any[]>([]);
   const [isLoadingProperties, setIsLoadingProperties] = useState(true);
+  const [showToast, setShowToast] = useState(false);
 
   // Helper function to format enum values for display
   const formatListingType = (type: string): string => {
@@ -749,8 +751,40 @@ function ListingsContent() {
         onClose={() => {
           setShowAIProcessing(false);
           setSelectedPropertyForAI(null);
+          // Show toast notification
+          setShowToast(true);
+          setTimeout(() => setShowToast(false), 5000); // Hide after 5 seconds
         }}
+        property={selectedPropertyForAI}
       />
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-8 right-8 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="bg-white rounded-xl shadow-2xl border border-grey-200 p-6 max-w-md">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-100 to-pink-100 rounded-full flex items-center justify-center">
+                  <Mail className="w-6 h-6 text-purple-600" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-lg font-semibold text-grey-900 mb-1">Report Generation Started!</h4>
+                <p className="text-sm text-grey-600 leading-relaxed">
+                  You'll receive an email once your AI-powered property report is ready. 
+                  The report will also be available in the <span className="font-semibold text-purple-600">"My Reports"</span> section.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowToast(false)}
+                className="flex-shrink-0 text-grey-400 hover:text-grey-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ProtectedRoute>
   );
 }

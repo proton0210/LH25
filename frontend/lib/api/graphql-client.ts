@@ -189,7 +189,6 @@ export const api = {
       }
       throw new Error("Unexpected GraphQL result type");
     } catch (error) {
-      console.error("Error fetching user details:", error);
       throw error;
     }
   },
@@ -206,12 +205,12 @@ export const api = {
         variables,
         authMode: 'userPool',
       });
+      
       if ("data" in result) {
         return result.data.listMyProperties;
       }
       throw new Error("Unexpected GraphQL result type");
     } catch (error) {
-      console.error("Error fetching my properties:", error);
       throw error;
     }
   },
@@ -232,7 +231,6 @@ export const api = {
       }
       throw new Error("Unexpected GraphQL result type");
     } catch (error) {
-      console.error("Error fetching properties:", error);
       throw error;
     }
   },
@@ -272,7 +270,6 @@ export const api = {
       }
       throw new Error("Unexpected GraphQL result type");
     } catch (error) {
-      console.error("Error creating property:", error);
       throw error;
     }
   },

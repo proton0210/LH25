@@ -50,7 +50,9 @@ export default function MyListingsPage() {
   }, [userDetails?.userId]);
 
   const fetchMyProperties = async (token?: string) => {
-    if (!userDetails?.userId) return;
+    if (!userDetails?.userId) {
+      return;
+    }
     
     try {
       setLoading(true);
@@ -71,8 +73,13 @@ export default function MyListingsPage() {
       setNextToken(response.nextToken || null);
       setHasMore(!!response.nextToken);
     } catch (err) {
-      console.error('Error fetching properties:', err);
-      setError('Failed to load your properties. Please try again.');
+      if (err instanceof Error && err.message.includes('User not found')) {
+        setError('User profile not found. Please ensure your profile is set up correctly.');
+      } else if (err instanceof Error && err.message.includes('Network')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError('Failed to load your properties. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

@@ -25,8 +25,6 @@ interface UploadImagesResult {
 export const handler = async (
   event: UploadImagesEvent
 ): Promise<UploadImagesResult> => {
-  console.log('Upload images event:', JSON.stringify(event, null, 2));
-
   try {
     const { propertyData } = event;
     const { images, userId, cognitoUserId, propertyId: existingPropertyId } = propertyData;
@@ -39,13 +37,15 @@ export const handler = async (
     const propertyId = existingPropertyId || ulid();
     
     // Determine user identifier - userId is the actual folder name created during signup
-    const userFolder = userId || 'anonymous';
+    // if not userID throw error and stop the function
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+    const userFolder = userId;
     
     // Create destination folder path within the existing user folder
     const listingFolder = `${userFolder}/listings/${propertyId}`;
     
-    console.log(`Processing ${images.length} images for ${listingFolder}`);
-
     // Always process images synchronously within Step Functions
 
     const uploadedImages: string[] = [];
@@ -58,8 +58,6 @@ export const handler = async (
       if (imageSource.startsWith('http://') || imageSource.startsWith('https://')) {
         // Download the image from URL and upload to S3
         try {
-          console.log(`Downloading image from URL: ${imageSource}`);
-          
           // Fetch the image
           const response = await fetch(imageSource);
           if (!response.ok) {
@@ -95,9 +93,7 @@ export const handler = async (
           }));
           
           uploadedImages.push(newKey);
-          console.log(`Successfully downloaded and saved image ${i + 1}: ${imageSource} -> ${newKey}`);
         } catch (error) {
-          console.error(`Failed to download image from URL ${imageSource}:`, error);
           // Continue with other images even if one fails
         }
       } else {
@@ -122,9 +118,7 @@ export const handler = async (
           }));
 
           uploadedImages.push(newKey);
-          console.log(`Successfully moved image ${i + 1}: ${imageSource} -> ${newKey}`);
         } catch (error) {
-          console.error(`Failed to move image ${imageSource}:`, error);
           // Continue with other images even if one fails
         }
       }
@@ -133,8 +127,6 @@ export const handler = async (
     if (uploadedImages.length === 0) {
       throw new Error('Failed to upload any images');
     }
-
-    console.log(`Successfully uploaded ${uploadedImages.length} images for property ${propertyId}`);
 
     // Return updated property data with new image locations
     return {
@@ -149,7 +141,6 @@ export const handler = async (
     };
 
   } catch (error) {
-    console.error('Error uploading images:', error);
     return {
       success: false,
       propertyId: '',
