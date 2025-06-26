@@ -136,39 +136,6 @@ GenerateAIContent → GeneratePDF → SaveToS3 → SendEmail
 - AI report generation for paid users
 - Presigned URL generation for secure uploads
 
-## 🏁 Getting Started
-
-### Prerequisites
-- AWS Account with appropriate permissions
-- Node.js 20.x or later
-- AWS CDK CLI installed
-
-### Deployment Steps
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   cd backend
-   npm install
-   ```
-
-3. Deploy the stack using our custom script:
-   ```bash
-   npm run deploy
-   ```
-
-4. Note the outputs for frontend configuration
-
-### Environment Variables
-
-Key environment variables used across Lambda functions:
-- `USER_TABLE_NAME`: DynamoDB table for users
-- `PROPERTIES_TABLE_NAME`: DynamoDB table for properties
-- `USER_FILES_BUCKET_NAME`: S3 bucket for user uploads
-- `PROPERTY_IMAGES_BUCKET_NAME`: S3 bucket for property images
-- `AI_PROCESSING_QUEUE_URL`: SQS queue for AI tasks
-- `ADMIN_EVENT_BUS_NAME`: EventBridge bus for admin events
-
 ## 🎓 Architectural Lessons & Best Practices
 
 This project demonstrates several key serverless principles:

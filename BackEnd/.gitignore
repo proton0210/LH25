@@ -8,3 +8,6 @@ node_modules
 .cdk.staging
 cdk.out
 signup-vidit.sh
+
+# macOS system files
+.DS_Store
