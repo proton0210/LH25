@@ -30,7 +30,7 @@ aws configure set region ap-south-1
 To deploy the backend stack, we use our custom deployment script:
 
 ```bash
-cd backend
+cd BackEnd
 npm i
 npm run deploy  # This is our custom script that handles CDK deployment
 ```
@@ -67,9 +67,9 @@ Before the application can generate AI-powered property reports, you need to ena
 
 ## Step 3 - Configure Frontend
 
-After successful deployment, you will find all the CDK stack outputs in `backend/cdk-outputs.txt`. 
+After successful deployment, you will find all the CDK stack outputs in `BackEnd/cdk-outputs.txt`. 
 
-Use these values to fill the respective fields in `backend/frontend-variables.txt`:
+Use these values to fill the respective fields in `BackEnd/frontend-variables.txt`:
 
 - `NEXT_PUBLIC_GRAPHQL_ENDPOINT` - Use the `GraphQLApiUrl` value from cdk-outputs.txt
 - `NEXT_PUBLIC_USER_POOL_ID` - Use the `UserPoolId` value from cdk-outputs.txt  
@@ -89,11 +89,11 @@ npm i
 
 ### ⚠️ IMPORTANT: Create Environment File
 
-**Create `.env.local` file and paste all the values from `backend/frontend-variables.txt` into it.**
+**Create `.env.local` file and paste all the values from `BackEnd/frontend-variables.txt` into it.**
 
 ```bash
 # Create the .env.local file in the frontend directory
-cp ../backend/frontend-variables.txt .env.local
+cp ../BackEnd/frontend-variables.txt .env.local
 ```
 
 > **Note:** Make sure all variables in `.env.local` are properly set with the values from CDK outputs before proceeding.
@@ -121,7 +121,7 @@ This action will delete:
 ### To destroy all resources:
 
 ```bash
-cd backend
+cd BackEnd
 npm run destroy
 ```
 

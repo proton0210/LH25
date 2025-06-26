@@ -30,15 +30,13 @@ After experiencing these frustrations firsthand, I built this platform to solve 
 
 This is a comprehensive real estate property management system built entirely on AWS serverless technologies. Born from the frustration of house hunting with unreliable data and high fees, the platform enables users to list properties with verified information, manage real estate portfolios, generate AI-powered property reports with accurate market data, and handle administrative workflows—all while leveraging the power of AWS Lambda and associated serverless services.
 
-## 🔥 AWS Lambda Architecture
-
 ### Lambda Functions Overview
 
 Our application utilizes **25+ Lambda functions** organized into distinct categories:
 
 ```
 📦 Lambda Functions (25+)
-├── 🔐 Authentication & User Management (5)
+├── 🔐 Authentication & User Management (6)
 ├── 🏠 Property Management (8)
 ├── 🤖 AI & Report Generation (4)
 ├── 📧 Notifications & Events (4)
@@ -254,19 +252,6 @@ The architecture is designed for evolution:
 ## 🚀 Deployment
 
 For detailed deployment instructions, please refer to our [Deployment Guide](Deployment.md).
-
-### Quick Start
-1. Configure AWS CLI for `ap-south-1` region
-2. Enable Amazon Bedrock and request access to Claude 3 Haiku model
-3. Deploy backend: `cd backend && npm run deploy`
-4. Configure frontend with CDK outputs
-5. Start frontend: `cd frontend && npm run dev`
-
-### Requirements
-- AWS Account with appropriate permissions
-- Node.js 20.x or later
-- AWS CDK CLI
-- Amazon Bedrock access in ap-south-1 region
 
 ---
 
