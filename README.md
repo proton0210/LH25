@@ -1,5 +1,7 @@
 # Real Estate Platform: A Serverless Property Management Solution
 
+![Architecture Diagram](images/LH25.png)
+
 ## Table of Contents
 - [Overview](#overview)
 - [The Problem We're Solving](#the-problem-were-solving)
@@ -24,24 +26,11 @@
 
 After experiencing these frustrations firsthand, I built this platform to solve these fundamental issues in the real estate market.
 
-## 🏗️ Architectural Excellence in Serverless Design
-
-This platform represents a state-of-the-art implementation of serverless architecture patterns on AWS, demonstrating best practices in event-driven design, microservices architecture, and cloud-native development. Built from personal experience with real estate market frustrations, it showcases how modern serverless applications can achieve enterprise-grade scalability, reliability, and performance while maintaining cost efficiency.
-
 ## 🎯 Project Overview
 
 This is a comprehensive real estate property management system built entirely on AWS serverless technologies. Born from the frustration of house hunting with unreliable data and high fees, the platform enables users to list properties with verified information, manage real estate portfolios, generate AI-powered property reports with accurate market data, and handle administrative workflows—all while leveraging the power of AWS Lambda and associated serverless services.
 
 ## 🔥 AWS Lambda Architecture
-
-### Why Lambda?
-
-AWS Lambda forms the backbone of our serverless architecture, providing:
-- **Zero Server Management**: No infrastructure to provision or manage
-- **Automatic Scaling**: From zero to thousands of concurrent executions
-- **Pay-per-Use**: Charged only for compute time consumed
-- **Event-Driven**: Seamlessly integrates with 20+ AWS services
-- **High Availability**: Built-in fault tolerance across multiple AZs
 
 ### Lambda Functions Overview
 
@@ -157,8 +146,6 @@ Step Functions → Lambda 1 → Lambda 2 → Lambda 3 → Complete
 
 ## 🏛️ Architecture Overview
 
-![Architecture Diagram](images/LH25.png)
-
 ### Serverless Architecture Patterns Implemented
 
 Our architecture embodies several industry-leading serverless patterns:
@@ -187,30 +174,6 @@ Our architecture embodies several industry-leading serverless patterns:
 
 ### Infrastructure & Deployment
 - **AWS CDK**: Infrastructure as Code for reproducible deployments
-
-## 🌟 Core Features & Functionality
-
-### User Management
-- **Automated User Onboarding**: Step Functions workflow orchestrates user creation across multiple services
-- **Tiered Access Control**: Three-tier system (User, Paid, Admin) with Cognito groups
-- **Profile Management**: Seamless integration between Cognito and DynamoDB user profiles
-
-### Property Management
-- **Async Property Upload**: SQS-based pipeline for reliable property submission
-- **Multi-stage Validation**: Step Functions ensure data integrity before persistence
-- **Image Processing**: Direct S3 uploads with presigned URLs for optimal performance
-- **Admin Approval Workflow**: EventBridge-powered notification system
-
-### AI-Powered Reports (Pro Feature)
-- **Bedrock Integration**: Leverages AWS Bedrock for advanced AI capabilities
-- **Async Report Generation**: SQS queue manages AI processing workload
-- **PDF Generation Pipeline**: Step Functions orchestrate content generation to delivery
-- **Secure Report Storage**: Time-limited presigned URLs for report access
-
-### Administrative Features
-- **Property Moderation**: Admin dashboard for property approval/rejection
-- **Event-Driven Notifications**: EventBridge triggers email notifications
-- **Bulk Operations**: Efficient DynamoDB queries with GSI optimization
 
 ## 🔧 Lambda Architecture Deep Dive
 
