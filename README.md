@@ -160,6 +160,8 @@ Our architecture embodies several industry-leading serverless patterns:
 ### Infrastructure & Deployment
 - **AWS CDK**: Infrastructure as Code for reproducible deployments
 
+### Communication & Notifications
+- **Resend API**: Email service integration (Note: For hackathon purposes, the Resend API token has been included with rate limits. This is intentionally done for ease of testing during the hackathon, though I acknowledge this is not a best practice for production environments)
 
 ---
 
