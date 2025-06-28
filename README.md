@@ -24,64 +24,6 @@ After experiencing these frustrations firsthand, I built this platform to solve 
 
 This is a comprehensive real estate property management system built entirely on AWS serverless technologies. Born from the frustration of house hunting with unreliable data and high fees, the platform enables users to list properties with verified information, manage real estate portfolios, generate AI-powered property reports with accurate market data, and handle administrative workflows—all while leveraging the power of AWS Lambda and associated serverless services.
 
-## ✨ Features
-
-### 🔐 User Management & Authentication
-- **Multi-tier User System**: Regular users, Pro/Paid users, and Admin users with different access levels
-- **Secure Authentication**: AWS Cognito-powered signup/login with email verification
-- **Profile Management**: User profiles with personal details and automatic S3 folder creation
-- **Seamless Upgrade Path**: One-click upgrade to Pro tier unlocking premium features
-
-### 🏠 Property Management
-- **Comprehensive Property Listings**: Create detailed listings with:
-  - Property specifications (bedrooms, bathrooms, square feet, etc.)
-  - Multiple high-quality image uploads
-  - Location details with full address
-  - Pricing and property type information
-- **Smart Search & Filtering**: Find properties by city, state, price range, property type, and more
-- **My Properties Dashboard**: Manage your listed properties in one place
-- **Direct Image Upload**: Secure S3 presigned URLs for fast, direct image uploads
-
-### 👨‍💼 Admin Controls
-- **Property Verification System**: All listings go through admin approval to ensure quality
-- **Approval Workflow**: 
-  - Review pending properties
-  - Approve verified listings
-  - Reject with detailed reasons
-- **Admin Dashboard**: Dedicated interface for property moderation
-- **Event Notifications**: Automatic notifications for property status changes
-
-### 🤖 AI-Powered Property Reports (Pro Feature)
-- **Professional Market Analysis**: AI-generated reports using AWS Bedrock (Claude 3)
-- **Multiple Report Types**:
-  - **Market Analysis**: Local trends, comparable properties, price positioning
-  - **Investment Analysis**: ROI projections, cash flow analysis, risk assessment
-  - **Comparative Market Analysis (CMA)**: In-depth property comparisons
-  - **Listing Optimization**: Pricing recommendations and marketing strategies
-  - **Custom Reports**: Tailored analysis based on specific needs
-- **Comprehensive Insights**: Neighborhood amenities, schools, transportation, shopping
-- **PDF Generation**: Professional reports delivered as downloadable PDFs
-- **Report History**: Access all your generated reports anytime
-
-### 📧 Smart Notifications
-- **Welcome Emails**: Personalized onboarding for new users
-- **Status Updates**: Real-time notifications for property approval/rejection
-- **Report Delivery**: Instant notification when AI reports are ready
-- **Pro Upgrade Confirmation**: Welcome to premium features
-- **Admin Alerts**: Notifications for pending property reviews
-
-### 🚀 Performance & Reliability
-- **Asynchronous Processing**: SQS queues ensure smooth operation even during high load
-- **Auto-scaling**: Serverless architecture scales automatically with demand
-- **Error Handling**: Dead letter queues and retry mechanisms for reliability
-- **Real-time Monitoring**: CloudWatch dashboards and alarms for system health
-
-### 🔒 Security & Privacy
-- **Role-Based Access Control**: Different permissions for users, Pro users, and admins
-- **Secure File Storage**: Private S3 buckets with presigned URLs
-- **Owner-Only Access**: Users can only modify their own properties
-- **Data Encryption**: All data encrypted at rest and in transit
-
 ### Lambda Functions Overview
 
 Our application utilizes **25+ Lambda functions** organized into distinct categories:
@@ -220,6 +162,64 @@ Our architecture embodies several industry-leading serverless patterns:
 
 ### Communication & Notifications
 - **Resend API**: Email service integration (Note: For hackathon purposes, the Resend API token has been included with rate limits. This is intentionally done for ease of testing during the hackathon, though I acknowledge this is not a best practice for production environments)
+
+## ✨ Features
+
+### 🔐 User Management & Authentication
+- **Multi-tier User System**: Regular users, Pro/Paid users, and Admin users with different access levels
+- **Secure Authentication**: AWS Cognito-powered signup/login with email verification
+- **Profile Management**: User profiles with personal details and automatic S3 folder creation
+- **Seamless Upgrade Path**: One-click upgrade to Pro tier unlocking premium features
+
+### 🏠 Property Management
+- **Comprehensive Property Listings**: Create detailed listings with:
+  - Property specifications (bedrooms, bathrooms, square feet, etc.)
+  - Multiple high-quality image uploads
+  - Location details with full address
+  - Pricing and property type information
+- **Smart Search & Filtering**: Find properties by city, state, price range, property type, and more
+- **My Properties Dashboard**: Manage your listed properties in one place
+- **Direct Image Upload**: Secure S3 presigned URLs for fast, direct image uploads
+
+### 👨‍💼 Admin Controls
+- **Property Verification System**: All listings go through admin approval to ensure quality
+- **Approval Workflow**: 
+  - Review pending properties
+  - Approve verified listings
+  - Reject with detailed reasons
+- **Admin Dashboard**: Dedicated interface for property moderation
+- **Event Notifications**: Automatic notifications for property status changes
+
+### 🤖 AI-Powered Property Reports (Pro Feature)
+- **Professional Market Analysis**: AI-generated reports using AWS Bedrock (Claude 3)
+- **Multiple Report Types**:
+  - **Market Analysis**: Local trends, comparable properties, price positioning
+  - **Investment Analysis**: ROI projections, cash flow analysis, risk assessment
+  - **Comparative Market Analysis (CMA)**: In-depth property comparisons
+  - **Listing Optimization**: Pricing recommendations and marketing strategies
+  - **Custom Reports**: Tailored analysis based on specific needs
+- **Comprehensive Insights**: Neighborhood amenities, schools, transportation, shopping
+- **PDF Generation**: Professional reports delivered as downloadable PDFs
+- **Report History**: Access all your generated reports anytime
+
+### 📧 Smart Notifications
+- **Welcome Emails**: Personalized onboarding for new users
+- **Status Updates**: Real-time notifications for property approval/rejection
+- **Report Delivery**: Instant notification when AI reports are ready
+- **Pro Upgrade Confirmation**: Welcome to premium features
+- **Admin Alerts**: Notifications for pending property reviews
+
+### 🚀 Performance & Reliability
+- **Asynchronous Processing**: SQS queues ensure smooth operation even during high load
+- **Auto-scaling**: Serverless architecture scales automatically with demand
+- **Error Handling**: Dead letter queues and retry mechanisms for reliability
+- **Real-time Monitoring**: CloudWatch dashboards and alarms for system health
+
+### 🔒 Security & Privacy
+- **Role-Based Access Control**: Different permissions for users, Pro users, and admins
+- **Secure File Storage**: Private S3 buckets with presigned URLs
+- **Owner-Only Access**: Users can only modify their own properties
+- **Data Encryption**: All data encrypted at rest and in transit
 
 ---
 
