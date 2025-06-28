@@ -139,7 +139,7 @@ Our architecture embodies several industry-leading serverless patterns:
 2. **Single Responsibility Pattern**: Each Lambda function serves a single purpose, promoting maintainability
 3. **Choreography & Orchestration**: Combining Step Functions for complex workflows with event-driven choreography
 4. **Async Request-Reply**: SQS queues decouple time-intensive operations from synchronous API calls
-5. **API Gateway Pattern**: AppSync provides a unified GraphQL interface for all operations
+5. **API Pattern**: AppSync provides a unified GraphQL interface for all operations
 
 ## 🛠️ AWS Services Utilized
 
