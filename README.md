@@ -4,7 +4,7 @@
 
 ## App Info
 
-- **🌐 Live App**: [Your Live App Link Here]
+- **🌐 Live App**: [Lambda Houses](https://main.d3fxq23v8unm8.amplifyapp.com)
 - **📺 Demo Video**: [Watch Demo on YouTube](https://www.youtube.com/watch?v=__fV4ofAd5Q)
 
 For detailed deployment instructions, see [Deployment.md](Deployment.md).
