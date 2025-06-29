@@ -2,13 +2,20 @@
 
 ![Architecture Diagram](images/LH25.png)
 
+## App Info
+
+- **🌐 Live App**: [Your Live App Link Here]
+- **📺 Demo Video**: [Watch Demo on YouTube](https://www.youtube.com/watch?v=__fV4ofAd5Q)
+
+For detailed deployment instructions, see [Deployment.md](Deployment.md).
+
 ## 🚀 Deployment
 
 For detailed deployment instructions, see [Deployment.md](Deployment.md).
 
 ## The Problem We're Solving
 
-*Looking for a new house for our growing family, we quickly discovered the real estate market's biggest pain points:*
+_Looking for a new house for our growing family, we quickly discovered the real estate market's biggest pain points:_
 
 **False and misleading listings everywhere.** Many online property listings contain inaccurate information, outdated photos, or properties that aren't even available.
 
@@ -40,6 +47,7 @@ Our application utilizes **25+ Lambda functions** organized into distinct catego
 ### Lambda Integration Patterns
 
 #### 1. **Synchronous Request-Response Pattern**
+
 Used for real-time operations through AWS AppSync GraphQL API:
 
 ```
@@ -47,11 +55,13 @@ User Request → AppSync → Lambda Resolver → DynamoDB → Response
 ```
 
 **Example Functions:**
+
 - `get-property`: Retrieves property details (128MB, 10s timeout)
 - `list-properties`: Lists filtered properties (256MB, 30s timeout)
 - `get-user-details`: Fetches user profile (128MB, 10s timeout)
 
 #### 2. **Asynchronous Processing Pattern**
+
 Used for time-intensive operations via SQS queues:
 
 ```
@@ -59,9 +69,11 @@ API Request → Lambda → SQS Queue → Lambda Consumer → Step Functions
 ```
 
 **Example Flow:**
+
 - `create-property` → SQS → `property-upload-consumer` → Step Functions workflow
 
 #### 3. **Event-Driven Pattern**
+
 Used for reactive processing via EventBridge:
 
 ```
@@ -69,10 +81,12 @@ State Change → EventBridge → Lambda Handler → Action
 ```
 
 **Example Functions:**
+
 - `property-approved-handler`: Sends notification when admin approves property
 - `property-rejected-handler`: Notifies user of rejection with reasons
 
 #### 4. **Step Functions Orchestration Pattern**
+
 Used for complex multi-step workflows:
 
 ```
@@ -80,12 +94,14 @@ Step Functions → Lambda 1 → Lambda 2 → Lambda 3 → Complete
 ```
 
 **Example Workflows:**
+
 - User Creation: `generate-user-id` → `create-dynamodb-user` + `create-s3-folder` → `send-welcome-email`
 - Report Generation: `generate-ai-content` → `generate-pdf` → `save-to-s3` → `send-email`
 
 ## 📋 How AWS Lambda Was Used
 
 ### AppSync Resolvers (GraphQL API Endpoints)
+
 - **`create-property`** - Validates property data and queues it for asynchronous processing via SQS
 - **`get-property`** - Retrieves single property details from DynamoDB with authorization checks
 - **`list-properties`** - Queries and returns paginated property listings with multiple filter options
@@ -103,6 +119,7 @@ Step Functions → Lambda 1 → Lambda 2 → Lambda 3 → Complete
 - **`upgrade-user-to-paid`** - Upgrades user tier and triggers Step Functions workflow
 
 ### Step Functions Tasks
+
 - **`generate-user-id`** - Creates unique ULID-based identifier for new users
 - **`create-dynamodb-user`** - Persists user profile to DynamoDB with GSI attributes
 - **`create-s3-folder`** - Initializes user-specific S3 directory structure
@@ -120,14 +137,15 @@ Step Functions → Lambda 1 → Lambda 2 → Lambda 3 → Complete
 - **`send-pro-welcome-email`** - Sends upgrade confirmation with feature guide
 
 ### Event Handlers
+
 - **`property-approved-handler`** - Processes approval events and sends success notifications
 - **`property-rejected-handler`** - Handles rejection events with reason communication
 - **`post-confirmation`** - Triggers user creation workflow after Cognito signup
 
 ### Queue Consumers
+
 - **`property-upload-consumer`** - Processes SQS messages to initiate property upload workflow
 - **`ai-processing-consumer`** - Handles AI report generation requests from SQS queue
-
 
 ## 🏛️ Architecture Overview
 
@@ -144,34 +162,41 @@ Our architecture embodies several industry-leading serverless patterns:
 ## 🛠️ AWS Services Utilized
 
 ### Core Compute & Orchestration
+
 - **AWS Lambda**: 20+ purpose-built functions implementing single-responsibility architecture
 - **AWS Step Functions**: Orchestrating complex multi-step workflows with built-in error handling
 - **Amazon SQS**: Decoupling components for resilient async processing
 - **Amazon EventBridge**: Event routing for admin operations and system events
 
 ### Data & Storage Layer
+
 - **Amazon DynamoDB**: Single-table design with 5 GSIs for efficient querying patterns
 - **Amazon S3**: Secure object storage with presigned URLs for direct uploads
 - **AWS AppSync**: Managed GraphQL API with real-time capabilities
 
 ### Security & Identity
+
 - **Amazon Cognito**: User authentication with group-based authorization
 
 ### Infrastructure & Deployment
+
 - **AWS CDK**: Infrastructure as Code for reproducible deployments
 
 ### Communication & Notifications
+
 - **Resend API**: Email service integration (Note: For hackathon purposes, the Resend API token has been included with rate limits. This is intentionally done for ease of testing during the hackathon, though I acknowledge this is not a best practice for production environments)
 
 ## ✨ Features
 
 ### 🔐 User Management & Authentication
+
 - **Multi-tier User System**: Regular users, Pro/Paid users, and Admin users with different access levels
 - **Secure Authentication**: AWS Cognito-powered signup/login with email verification
 - **Profile Management**: User profiles with personal details and automatic S3 folder creation
 - **Seamless Upgrade Path**: One-click upgrade to Pro tier unlocking premium features
 
 ### 🏠 Property Management
+
 - **Comprehensive Property Listings**: Create detailed listings with:
   - Property specifications (bedrooms, bathrooms, square feet, etc.)
   - Multiple high-quality image uploads
@@ -182,8 +207,9 @@ Our architecture embodies several industry-leading serverless patterns:
 - **Direct Image Upload**: Secure S3 presigned URLs for fast, direct image uploads
 
 ### 👨‍💼 Admin Controls
+
 - **Property Verification System**: All listings go through admin approval to ensure quality
-- **Approval Workflow**: 
+- **Approval Workflow**:
   - Review pending properties
   - Approve verified listings
   - Reject with detailed reasons
@@ -191,6 +217,7 @@ Our architecture embodies several industry-leading serverless patterns:
 - **Event Notifications**: Automatic notifications for property status changes
 
 ### 🤖 AI-Powered Property Reports (Pro Feature)
+
 - **Professional Market Analysis**: AI-generated reports using AWS Bedrock (Claude 3)
 - **Multiple Report Types**:
   - **Market Analysis**: Local trends, comparable properties, price positioning
@@ -203,6 +230,7 @@ Our architecture embodies several industry-leading serverless patterns:
 - **Report History**: Access all your generated reports anytime
 
 ### 📧 Smart Notifications
+
 - **Welcome Emails**: Personalized onboarding for new users
 - **Status Updates**: Real-time notifications for property approval/rejection
 - **Report Delivery**: Instant notification when AI reports are ready
@@ -210,12 +238,14 @@ Our architecture embodies several industry-leading serverless patterns:
 - **Admin Alerts**: Notifications for pending property reviews
 
 ### 🚀 Performance & Reliability
+
 - **Asynchronous Processing**: SQS queues ensure smooth operation even during high load
 - **Auto-scaling**: Serverless architecture scales automatically with demand
 - **Error Handling**: Dead letter queues and retry mechanisms for reliability
 - **Real-time Monitoring**: CloudWatch dashboards and alarms for system health
 
 ### 🔒 Security & Privacy
+
 - **Role-Based Access Control**: Different permissions for users, Pro users, and admins
 - **Secure File Storage**: Private S3 buckets with presigned URLs
 - **Owner-Only Access**: Users can only modify their own properties
@@ -223,4 +253,4 @@ Our architecture embodies several industry-leading serverless patterns:
 
 ---
 
-*Built with ❤️ using AWS Serverless Technologies*
+_Built with ❤️ using AWS Serverless Technologies_
