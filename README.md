@@ -158,7 +158,7 @@ Our architecture embodies several industry-leading serverless patterns:
 4. **Async Request-Reply**: SQS queues decouple time-intensive operations from synchronous API calls
 5. **API Pattern**: AppSync provides a unified GraphQL interface for all operations
 
-## 🛠️ AWS Services Utilized
+## 🛠️ AWS Services(Tools) Utilized
 
 ### Core Compute & Orchestration
 
